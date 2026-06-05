@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Văn phòng HĐND và UBND xã Krông Bông - Hệ thống quản lý nhiệm vụ</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    
+    <style>
+        :root {
+            --primary-color: #0056b3;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --info-color: #17a2b8;
+            --excel-color: #1f7244;
+            --word-color: #007acc;
+            --bg-color: #f8f9fa;
+            --dark-color: #343a40;
+        }
+
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container { max-width: 1600px; margin: 0 auto; display: none; }
+        
+        /* LOGIN BOX STYLE */
+        .login-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 80vh;
+        }
+        .login-box {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            width: 100%;
+            max-width: 450px;
+            border-top: 5px solid var(--primary-color);
+        }
+        .login-box h2 { text-align: center; color: var(--primary-color); margin-bottom: 5px; font-size: 20px; }
+        .login-box h4 { text-align: center; color: #555; margin-top: 5px; margin-bottom: 25px; font-weight: 500; font-size: 14px; text-transform: uppercase; border-bottom: 1px dashed #eee; padding-bottom: 10px;}
+        .login-group { display: flex; flex-direction: column; margin-bottom: 15px; }
+        .login-group label { font-weight: bold; margin-bottom: 5px; font-size: 14px; }
+        .login-group input { padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        .btn-login { background: var(--primary-color); color: white; border: none; padding: 12px; border-radius: 4px; font-weight: bold; font-size: 16px; cursor: pointer; width: 100%; }
+        .btn-login:hover { background: #004085; }
+        .login-error { color: var(--danger-color); font-weight: bold; font-size: 13px; text-align: center; margin-top: 10px; display: none; }
+
+        /* HEADER USER INFO */
+        .header-status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #fff;
+            padding: 10px 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .user-tag { font-weight: bold; color: var(--primary-color); }
+        .role-tag { padding: 3px 8px; border-radius: 4px; font-size: 12px; color: white; font-weight: bold; margin-left: 5px; }
+        .btn-logout { background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; }
+        .btn-logout:hover { background: #5a6268; }
+
+        h1 { text-align: center; color: var(--primary-color); margin-bottom: 5px; font-size: 24px; }
+        .sub-title { text-align: center; color: #555; font-size: 18px; font-weight: bold; margin-top: 5px; margin-bottom: 25px; text-transform: uppercase; }
+        h3 { margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 8px; color: #495057; }
+
+        /* DASHBOARD STYLES */
+        .dashboard-section { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; margin-bottom: 30px; }
+        .dashboard-box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .cards-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 15px; }
+        .card-total { grid-column: span 2; background: #e9ecef; border-left: 5px solid #6c757d; }
+        .card { padding: 15px; border-radius: 6px; color: white; text-align: center; }
+        .card-title { font-size: 13px; font-weight: 600; text-transform: uppercase; margin-bottom: 5px; opacity: 0.9;}
+        .card-num { font-size: 24px; font-weight: bold; }
+        .c-total { color: #212529; }
+        .c-cx-th { background-color: var(--info-color); }
+        .c-cx-thh { background-color: var(--danger-color); }
+        .c-ht-th { background-color: var(--success-color); }
+        .c-ht-qh { background-color: var(--warning-color); color: #212529; }
+
+        .table-mini { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .table-mini th { background-color: #6c757d; color: white; padding: 8px; }
+        .table-mini td { padding: 8px; border: 1px solid #dee2e6; }
+        .table-mini tr:nth-child(even) { background-color: #f8f9fa; }
+        .font-bold { font-weight: bold; }
+
+        /* FORM STYLES */
+        .form-section { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 30px; border-top: 4px solid var(--primary-color); }
+        .form-section.edit-mode { border-top: 4px solid var(--warning-color); background: #fffdf5; }
+        .form-section.admin-mode { border-top: 4px solid var(--dark-color); background: #fdfefe; }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; }
+        .form-group { display: flex; flex-direction: column; }
+        .form-group.full-width { grid-column: span 2; }
+        label { font-weight: 600; margin-bottom: 5px; font-size: 14px; }
+        input, select, textarea { padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        textarea { resize: vertical; height: 38px; }
+        #coQuanKhacWrapper { display: none; margin-top: 5px; }
+        .auto-hint { font-size: 11px; color: #28a745; margin-top: 3px; font-style: italic; }
+        .button-group { grid-column: 1 / -1; display: flex; gap: 10px; }
+        .btn-submit { flex: 1; background-color: var(--primary-color); color: white; padding: 12px; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        .btn-submit:hover { background-color: #004085; }
+        .btn-cancel { display: none; background-color: #6c757d; color: white; padding: 12px 20px; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; }
+
+        /* PHÂN HỆ QUẢN TRỊ TÀI KHOẢN */
+        .admin-section { display: none; grid-template-columns: 1fr 2fr; gap: 20px; margin-bottom: 30px; }
+        .btn-admin-submit { background-color: var(--dark-color); color: white; padding: 10px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 10px;}
+        .btn-admin-submit:hover { background-color: #1a1e21; }
+        .btn-reset-pw { background-color: var(--danger-color); color: white; border: none; padding: 3px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;}
+        .btn-reset-pw:hover { background-color: #bd2130; }
+
+        /* FILTER & DATA TABLE STYLES */
+        .filter-section { background: #e9ecef; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 15px; }
+        .filter-row { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; width: 100%; }
+        .filter-group { display: flex; align-items: center; gap: 8px; }
+        .filter-group label { margin-bottom: 0; white-space: nowrap; }
+        .period-buttons { display: flex; gap: 5px; flex-wrap: wrap; }
+        
+        .btn-period { background-color: #fff; border: 1px solid #ced4da; padding: 6px 12px; font-size: 13px; border-radius: 4px; cursor: pointer; font-weight: 500; }
+        .btn-period:hover { background-color: #e2e6ea; }
+        .btn-period.active { background-color: var(--primary-color); color: white; border-color: var(--primary-color); }
+
+        .btn-excel { background-color: var(--excel-color); color: white; padding: 10px 18px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+        .btn-excel:hover { background-color: #175633; }
+        
+        .btn-word { background-color: var(--word-color); color: white; padding: 10px 18px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; margin-left: auto;}
+        .btn-word:hover { background-color: #005f9e; }
+
+        .table-section { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; text-align: left; }
+        th, td { padding: 12px; border: 1px solid #dee2e6; }
+        th { background-color: var(--primary-color); color: white; font-weight: 600; white-space: nowrap; }
+        tr:nth-child(even) { background-color: #f2f2f2; }
+
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; color: white; display: inline-block; }
+        .bg-chua-xong-trong-han { background-color: var(--info-color); }
+        .bg-chua-xong-tre-han { background-color: var(--danger-color); }
+        .bg-hoan-thanh-trong-han { background-color: var(--success-color); }
+        .bg-hoan-thanh-qua-han { background-color: var(--warning-color); color: #212529; }
+
+        .btn-edit { background-color: var(--warning-color); color: #212529; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; }
+        .btn-edit:hover { background-color: #e0a800; }
+        
+        .loading-text { font-style: italic; color: #0056b3; font-weight: bold; text-align: center; padding: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="login-wrapper" id="loginWrapper">
+    <div class="login-box">
+        <h2>VĂN PHÒNG HĐND VÀ UBND XÃ KRÔNG BÔNG</h2>
+        <h4>🔒 HỆ THỐNG QUẢN LÝ NHIỆM VỤ</h4>
+        <form id="loginForm">
+            <div class="login-group">
+                <label for="username">Tên đăng nhập</label>
+                <input type="text" id="username" placeholder="Ví dụ: quyetlc..." required>
+            </div>
+            <div class="login-group">
+                <label for="password">Mật khẩu</label>
+                <input type="password" id="password" placeholder="Nhập mật khẩu..." required>
+            </div>
+            <button type="submit" class="btn-login">Đăng nhập</button>
+            <div class="login-error" id="loginError">⚠️ Tên đăng nhập hoặc mật khẩu không chính xác!</div>
+        </form>
+    </div>
+</div>
+
+<div class="container" id="mainContainer">
+    
+    <div class="header-status">
+        <div>
+            Chào cán bộ: <span class="user-tag" id="currentUserName">---</span>
+            <span class="role-tag" id="currentUserRoleBadge">---</span>
+        </div>
+        <button class="btn-logout" onclick="dangXuat()">🔄 Đăng xuất</button>
+    </div>
+
+    <h1>VĂN PHÒNG HĐND VÀ UBND XÃ KRÔNG BÔNG</h1>
+    <div class="sub-title">📋 HỆ THỐNG QUẢN LÝ NHIỆM VỤ</div>
+
+    <div class="admin-section" id="adminControlPanel">
+        <div class="dashboard-box" style="border: 2px solid var(--dark-color);">
+            <h3>➕ Tạo tài khoản mới</h3>
+            <form id="createUserForm">
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <div class="form-group">
+                        <label for="newUsername">Tên đăng nhập *</label>
+                        <input type="text" id="newUsername" placeholder="Ví dụ: vanntt" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="newPassword">Mật khẩu ban đầu *</label>
+                        <input type="password" id="newPassword" value="123" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="newDisplayName">Họ và tên cán bộ *</label>
+                        <input type="text" id="newDisplayName" placeholder="Ví dụ: Nguyễn Thị Thúy Vân" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="newRole">Phân quyền nhóm chức năng *</label>
+                        <select id="newRole" required>
+                            <option value="USER">Chuyên viên (Nhập liệu & theo dõi cá nhân)</option>
+                            <option value="VIEWER">Lãnh đạo xã (Chỉ theo dõi & Trích xuất)</option>
+                            <option value="ADMIN">Quản trị viên (Toàn quyền hệ thống)</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-admin-submit">💼 Tạo & Cấp quyền</button>
+                </div>
+            </form>
+        </div>
+
+        <div class="dashboard-box" style="border: 2px solid var(--dark-color); overflow-y: auto; max-height: 350px;">
+            <h3>👥 Danh sách cán bộ & Reset mật khẩu</h3>
+            <table class="table-mini">
+                <thead>
+                    <tr>
+                        <th>Tài khoản</th>
+                        <th>Họ và tên</th>
+                        <th>Nhóm quyền</th>
+                        <th>Thao tác quản trị</th>
+                    </tr>
+                </thead>
+                <tbody id="adminUserTableBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="dashboard-section">
+        <div class="dashboard-box">
+            <h3 id="db-title-tongQuan">📊 Tình hình chung thực hiện nhiệm vụ</h3>
+            <div class="cards-grid">
+                <div class="card card-total c-total">
+                    <div class="card-title" id="lbl-tong-quat">Tổng số nhiệm vụ trong kỳ</div>
+                    <div class="card-num" id="db-tong">0</div>
+                </div>
+                <div class="card c-cx-th">
+                    <div class="card-title">Chưa xong (Trong hạn)</div>
+                    <div class="card-num" id="db-cx-th">0</div>
+                </div>
+                <div class="card c-cx-thh">
+                    <div class="card-title">Chưa xong (Trễ hạn)</div>
+                    <div class="card-num" id="db-cx-thh">0</div>
+                </div>
+                <div class="card c-ht-th">
+                    <div class="card-title">Hoàn thành (Trong hạn)</div>
+                    <div class="card-num" id="db-ht-th">0</div>
+                </div>
+                <div class="card c-ht-qh">
+                    <div class="card-title">Hoàn thành (Quá hạn)</div>
+                    <div class="card-num" id="db-ht-qh">0</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-box" style="overflow-y: auto; max-height: 335px;">
+            <h3>🏢 Thống kê chi tiết theo Phòng ban/Đơn vị</h3>
+            <table class="table-mini">
+                <thead>
+                    <tr>
+                        <th>Đơn vị thực hiện</th>
+                        <th>Tổng số</th>
+                        <th style="background-color: var(--info-color);">CX-Trong hạn</th>
+                        <th style="background-color: var(--danger-color);">CX-Trễ hạn</th>
+                        <th style="background-color: var(--success-color);">HT-Trong hạn</th>
+                        <th style="background-color: var(--warning-color); color:#212529;">HT-Quá hạn</th>
+                    </tr>
+                </thead>
+                <tbody id="dashboardDepartmentBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="form-section" id="formContainer">
+        <h3 id="formTitle">✏️ Cập nhật nhiệm vụ giao ban</h3>
+        <form id="taskForm">
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <label for="noiDung">1. Nội dung nhiệm vụ *</label>
+                    <textarea id="noiDung" placeholder="Nhập chi tiết nội dung nhiệm vụ..." required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="thoiGianGiao">2. Thời gian giao nhiệm vụ *</label>
+                    <input type="date" id="thoiGianGiao" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="vanBan">3. Văn bản giao nhiệm vụ</label>
+                    <input type="text" id="vanBan" placeholder="Ví dụ: Kế hoạch số 45/KH-UBND">
+                </div>
+
+                <div class="form-group">
+                    <label for="thoiHan">4. Thời hạn hoàn thành (Để trống nếu không giao hạn)</label>
+                    <input type="date" id="thoiHan" onchange="tuDongKiemTraTienDoTheoKetQua()">
+                </div>
+
+                <div class="form-group">
+                    <label for="coQuan">5. Cơ quan/Bộ phận thực hiện *</label>
+                    <select id="coQuan" onchange="kiemTraCoQuanKhac(this.value)" required>
+                        <option value="">-- Chọn đơn vị --</option>
+                        <option value="Ban CHQS xã">Ban CHQS xã</option>
+                        <option value="Công an xã">Công an xã</option>
+                        <option value="Phòng Kinh tế">Phòng Kinh tế</option>
+                        <option value="Phòng Văn hóa - Xã hội">Phòng Văn hóa - Xã hội</option>
+                        <option value="Văn phòng HĐND và UBND">Văn phòng HĐND và UBND</option>
+                        <option value="Trung tâm PVHCC xã">Trung tâm PVHCC xã</option>
+                        <option value="Trung tâm Cung ứng dịch vụ sự nghiệp công xã">Trung tâm Cung ứng dịch vụ sự nghiệp công xã</option>
+                        <option value="Trạm Y tế xã">Trạm Y tế xã</option>
+                        <option value="Khác">Cơ quan đơn vị khác (tự nhập)</option>
+                    </select>
+                    <div id="coQuanKhacWrapper">
+                        <input type="text" id="coQuanKhac" placeholder="Nhập tên cơ quan, đơn vị khác...">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="ketQua">6. Kết quả thực hiện</label>
+                    <input type="text" id="ketQua" oninput="tuDongKiemTraTienDoTheoKetQua()" placeholder="Ví dụ: 123/TTr-VHXH ngày 03/6/2026">
+                    <span class="auto-hint">✨ Tự động nhận diện tiến độ dựa vào ngày ban hành văn bản</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="tienDo">7. Tiến độ/Trạng thái *</label>
+                    <select id="tienDo" required>
+                        <option value="Chưa hoàn thành - Trong hạn">Chưa hoàn thành - Trong hạn</option>
+                        <option value="Chưa hoàn thành - Trễ hạn">Chưa hoàn thành - Trễ hạn</option>
+                        <option value="Hoàn thành - Trong hạn">Hoàn thành - Trong hạn</option>
+                        <option value="Hoàn thành - Quá hạn">Hoàn thành - Quá hạn</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="chuyenVien">8. Chuyên viên theo dõi *</label>
+                    <select id="chuyenVien" required>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="ghiChu">9. Ghi chú</label>
+                    <input type="text" id="ghiChu" placeholder="Thông tin bổ sung khác...">
+                </div>
+
+                <div class="button-group">
+                    <button type="submit" id="btnSubmitText" class="btn-submit">💾 Lưu nhiệm vụ</button>
+                    <button type="button" id="btnCancel" class="btn-cancel" onclick="thoatCheDoSua()">❌ Hủy</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="filter-section">
+        <div class="filter-row" style="border-bottom: 1px dashed #ccc; padding-bottom: 12px;">
+            <div class="filter-group">
+                <strong>📅 Kỳ báo cáo:</strong>
+                <label for="filterTuNgay">Từ ngày</label>
+                <input type="date" id="filterTuNgay" onchange="suKienThayDoiKhoangNgay()">
+                <label for="filterDenNgay">đến ngày</label>
+                <input type="date" id="filterDenNgay" onchange="suKienThayDoiKhoangNgay()">
+            </div>
+            <div class="period-buttons">
+                <button class="btn-period" id="btn-all" onclick="chonKyBaoCao('all')">Tất cả</button>
+                <button class="btn-period" id="btn-today" onclick="chonKyBaoCao('today')">Hôm nay</button>
+                <button class="btn-period" id="btn-week" onclick="chonKyBaoCao('week')">Tuần này</button>
+                <button class="btn-period" id="btn-month" onclick="chonKyBaoCao('month')">Tháng này</button>
+                <button class="btn-period" id="btn-quarter" onclick="chonKyBaoCao('quarter')">Quý này</button>
+                <button class="btn-period" id="btn-year" onclick="chonKyBaoCao('year')">Năm này</button>
+            </div>
+        </div>
+
+        <div class="filter-row">
+            <strong>🔍 Phân loại nhanh:</strong>
+            <select id="filterCoQuan" onchange="chayBoLocVaThongKe()">
+                <option value="All">-- Tất cả cơ quan/bộ phận --</option>
+                <option value="Ban CHQS xã">Ban CHQS xã</option>
+                <option value="Công an xã">Công an xã</option>
+                <option value="Phòng Kinh tế">Phòng Kinh tế</option>
+                <option value="Phòng Văn hóa - Xã hội">Phòng Văn hóa - Xã hội</option>
+                <option value="Văn phòng HĐND và UBND">Văn phòng HĐND và UBND</option>
+                <option value="Trung tâm PVHCC xã">Trung tâm PVHCC xã</option>
+                <option value="Trung tâm Cung ứng dịch vụ sự nghiệp công xã">Trung tâm Cung ứng dịch vụ sự nghiệp công xã</option>
+                <option value="Trạm Y tế xã">Trạm Y tế xã</option>
+                <option value="Khác">Cơ quan đơn vị khác (tự nhập)</option>
+            </select>
+
+            <select id="filterChuyenVien" onchange="chayBoLocVaThongKe()">
+            </select>
+
+            <select id="filterTienDo" onchange="chayBoLocVaThongKe()">
+                <option value="All">-- Tất cả tiến độ --</option>
+                <option value="Chưa hoàn thành - Trong hạn">Chưa hoàn thành - Trong hạn</option>
+                <option value="Chưa hoàn thành - Trễ hạn">Chưa hoàn thành - Trễ hạn</option>
+                <option value="Hoàn thành - Trong hạn">Hoàn thành - Trong hạn</option>
+                <option value="Hoàn thành - Quá hạn">Hoàn thành - Quá hạn</option>
+            </select>
+
+            <button class="btn-excel" onclick="xuatBaoCaoExcel()">🟢 Xuất file Excel</button>
+            <button class="btn-word" onclick="xuatBaoCaoWordHànhChính()">🔵 Xuất Văn Bản Word chuẩn mẫu xã</button>
+        </div>
+    </div>
+
+    <div class="table-section">
+        <h3>📊 Danh sách nhiệm vụ tổng hợp</h3>
+        <div id="loadingStatus" class="loading-text" style="display: none;">⏳ Đang tải dữ liệu đồng bộ từ Google Sheets...</div>
+        <table id="taskTable">
+            <thead>
+                <tr>
+                    <th>STT</th>
+                    <th>Nội dung nhiệm vụ</th>
+                    <th>Thời gian giao</th>
+                    <th>Văn bản giao</th>
+                    <th>Thời hạn</th>
+                    <th>Cơ quan thực hiện</th>
+                    <th>Kết quả thực hiện</th>
+                    <th>Tiến độ</th>
+                    <th>Chuyên viên theo dõi</th>
+                    <th>Ghi chú</th>
+                    <th class="no-export" id="thThaoTac">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody id="taskTableBody">
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyFZIau27CnAaCR8iqzNfJzTrmVYciK3oDO8S2okK6GLcpG0o7cF4vNEbRJ0WNQOg4Dlw/exec";
+
+    const TAI_KHOAN_MAC_DINH = {
+        "quyetlc": { matKhau: "123", tenHienThi: "Lê Chí Quyết", quyen: "ADMIN" },
+        "vanntt": { matKhau: "123", tenHienThi: "Nguyễn Thị Thúy Vân", quyen: "USER" },
+        "haihth": { matKhau: "123", tenHienThi: "Huỳnh Thị Ngọc Hải", quyen: "USER" },
+        "phuongnld": { matKhau: "123", tenHienThi: "Nguyễn Lê Đan Phương", quyen: "USER" },
+        "lanhdao": { matKhau: "123", tenHienThi: "Thường trực UBND Xã", quyen: "VIEWER" }
+    };
+
+    if (!localStorage.getItem('heThongTaiKhoan')) {
+        localStorage.setItem('heThongTaiKhoan', JSON.stringify(TAI_KHOAN_MAC_DINH));
+    }
+
+    let danhSachNhiemVu = JSON.parse(localStorage.getItem('localTasksStore')) || [];
+    let dangSuaIndex = null;
+    let kyHienTai = 'all';
+    let userHienTai = null;
+
+    const cacPhongBanCoDinh = [
+        "Ban CHQS xã", "Công an xã", "Phòng Kinh tế", "Phòng Văn hóa - Xã hội",
+        "Văn phòng HĐND và UBND", "Trung tâm PVHCC xã", 
+        "Trung tâm Cung ứng dịch vụ sự nghiệp công xã", "Trạm Y tế xã"
+    ];
+
+    function layDanhSachTaiKhoanDb() { return JSON.parse(localStorage.getItem('heThongTaiKhoan')); }
+
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const u = document.getElementById('username').value.trim().toLowerCase();
+        const p = document.getElementById('password').value;
+        const err = document.getElementById('loginError');
+        const dbTaiKhoan = layDanhSachTaiKhoanDb();
+
+        if (dbTaiKhoan[u] && dbTaiKhoan[u].matKhau === p) {
+            err.style.display = 'none';
+            sessionStorage.setItem('loggedInUser', u);
+            kiemTraPhienDangNhap();
+        } else { err.style.display = 'block'; }
+    });
+
+    function kiemTraPhienDangNhap() {
+        const key = sessionStorage.getItem('loggedInUser');
+        const dbTaiKhoan = layDanhSachTaiKhoanDb();
+        
+        if (key && dbTaiKhoan[key]) {
+            userHienTai = dbTaiKhoan[key];
+            document.getElementById('loginWrapper').style.display = 'none';
+            document.getElementById('mainContainer').style.display = 'block';
+            document.getElementById('currentUserName').innerText = userHienThi.tenHienThi;
+            
+            const bgBadge = userHienTai.quyen === 'ADMIN' ? '#212529' : (userHienTai.quyen === 'VIEWER' ? '#28a745' : '#0056b3');
+            const txtBadge = userHienTai.quyen === 'ADMIN' ? 'Hệ thống & Tổng hợp' : (userHienTai.quyen === 'VIEWER' ? 'Lãnh đạo (Chỉ xem)' : 'Chuyên viên');
+            const b = document.getElementById('currentUserRoleBadge');
+            b.innerText = txtBadge; b.style.backgroundColor = bgBadge;
+
+            capNhatDropdownCánBộ();
+            cauHinhGiaoDienTheoQuyen();
+            taiDuLieuTuGoogleSheets();
+        } else {
+            document.getElementById('loginWrapper').style.display = 'flex';
+            document.getElementById('mainContainer').style.display = 'none';
+        }
+    }
+
+    // Hàm tự động quét và cập nhật trạng thái theo thời gian thực (Real-time)
+    function quetVaCapNhatTrangThaiThoiGianThuc() {
+        const homNay = new Date();
+        homNay.setHours(0, 0, 0, 0);
+
+        let coThayDoi = false;
+
+        danhSachNhiemVu = danhSachNhiemVu.map(task => {
+            // Kiểm tra xem kết quả có bị xem là trống hay không
+            const chuaCoKetQua = !task.ketQua || task.ketQua.trim() === "" || task.ketQua.trim() === "Chưa có kết quả";
+            
+            if (chuaCoKetQua && task.thoiHanGoc) {
+                const ngayThoiHan = new Date(task.thoiHanGoc);
+                ngayThoiHan.setHours(0, 0, 0, 0);
+
+                let trangThaiMoi = task.tienDo;
+                if (homNay > ngayThoiHan) {
+                    trangThaiMoi = "Chưa hoàn thành - Trễ hạn";
+                } else {
+                    trangThaiMoi = "Chưa hoàn thành - Trong hạn";
+                }
+
+                if (task.tienDo !== trangThaiMoi) {
+                    task.tienDo = trangThaiMoi;
+                    coThayDoi = true;
+                }
+            }
+            return task;
+        });
+
+        if (coThayDoi) {
+            localStorage.setItem('localTasksStore', JSON.stringify(danhSachNhiemVu));
+        }
+    }
+
+    function taiDuLieuTuGoogleSheets() {
+        if (!GOOGLE_SCRIPT_URL) { chonKyBaoCao('all'); return; }
+        const loadingText = document.getElementById('loadingStatus');
+        loadingText.style.display = 'block';
+
+        fetch(GOOGLE_SCRIPT_URL + "?action=read")
+        .then(response => response.json())
+        .then(data => {
+            if (data && Array.isArray(data)) {
+                danhSachNhiemVu = data.map(item => {
+                    return {
+                        noiDung: item.noiDung || "",
+                        vanBan: item.tenNhiemVu || "---",
+                        tGiaoGoc: item.thoiGianGiaoGoc || convertDateFormatToISO(item.thoiGianGiao),
+                        tGiaoHienThi: item.thoiGianGiao || "",
+                        thoiHanGoc: item.hanChotGoc || convertDateFormatToISO(item.hanChot),
+                        thoiHanHienThi: item.hanChot || "---",
+                        coQuan: item.coQuan || "Văn phòng HĐND và UBND",
+                        coQuanGoc: item.coQuanGoc || item.coQuan || "Văn phòng HĐND và UBND",
+                        coQuanKhacText: item.coQuanKhacText || "",
+                        ketQua: item.ketQua || "Chưa có kết quả",
+                        tienDo: item.trangThai || "Chưa hoàn thành - Trong hạn",
+                        chuyenVien: item.nguoiNhap || "",
+                        ghiChu: item.ghiChu || "---"
+                    };
+                });
+                // Quét cập nhật trạng thái thời gian thực ngay sau khi load từ Sheet về
+                quetVaCapNhatTrangThaiThoiGianThuc();
+                localStorage.setItem('localTasksStore', JSON.stringify(danhSachNhiemVu));
+            }
+            loadingText.style.display = 'none';
+            chonKyBaoCao('all');
+        })
+        .catch(err => {
+            console.error("Lỗi API, chạy dữ liệu Local dự phòng:", err);
+            loadingText.style.display = 'none';
+            quetVaCapNhatTrangThaiThoiGianThuc();
+            chonKyBaoCao('all');
+        });
+    }
+
+    function convertDateFormatToISO(str) {
+        if(!str || str === "---") return "";
+        const parts = str.split('/');
+        if(parts.length === 3) return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+        return "";
+    }
+
+    function dangXuat() {
+        sessionStorage.removeItem('loggedInUser');
+        userHienTai = null;
+        document.getElementById('loginForm').reset();
+        kiemTraPhienDangNhap();
+    }
+
+    function capNhatDropdownCánBộ() {
+        const dbTaiKhoan = layDanhSachTaiKhoanDb();
+        const selChuyenVien = document.getElementById('chuyenVien');
+        const fChuyenVien = document.getElementById('filterChuyenVien');
+
+        let htmlSelect = '<option value="">-- Chọn chuyên viên --</option>';
+        let htmlFilter = '<option value="All">-- Tất cả chuyên viên --</option>';
+
+        for (let username in dbTaiKhoan) {
+            if (dbTaiKhoan[username].quyen !== 'VIEWER') {
+                let ten = dbTaiKhoan[username].tenHienThi;
+                htmlSelect += `<option value="${ten}">${ten}</option>`;
+                htmlFilter += `<option value="${ten}">${ten}</option>`;
+            }
+        }
+        selChuyenVien.innerHTML = htmlSelect;
+        fChuyenVien.innerHTML = htmlFilter;
+    }
+
+    function cauHinhGiaoDienTheoQuyen() {
+        const formSec = document.getElementById('formContainer');
+        const fChuyenVien = document.getElementById('filterChuyenVien');
+        const selChuyenVien = document.getElementById('chuyenVien');
+        const adminPanel = document.getElementById('adminControlPanel');
+
+        if (userHienTai.quyen === 'ADMIN') {
+            adminPanel.style.display = 'grid';
+            formSec.style.display = 'block';
+            selChuyenVien.disabled = false;
+            selChuyenVien.value = userHienTai.tenHienThi;
+            fChuyenVien.disabled = false;
+            fChuyenVien.value = 'All';
+            document.getElementById('lbl-tong-quat').innerText = "Tổng số nhiệm vụ toàn xã";
+            taiDanhSachTaiKhoanAdmin();
+        } else {
+            adminPanel.style.display = 'none';
+            if (userHienTai.quyen === 'VIEWER') {
+                formSec.style.display = 'none';
+                fChuyenVien.disabled = false;
+                fChuyenVien.value = 'All';
+                document.getElementById('lbl-tong-quat').innerText = "Tổng số nhiệm vụ toàn xã";
+            } else if (userHienTai.quyen === 'USER') {
+                formSec.style.display = 'block';
+                selChuyenVien.value = userHienTai.tenHienThi;
+                selChuyenVien.disabled = true;
+                fChuyenVien.value = userHienTai.tenHienThi;
+                fChuyenVien.disabled = true;
+                document.getElementById('lbl-tong-quat').innerText = "Nhiệm vụ cá nhân phụ trách";
+            }
+        }
+    }
+
+    function taiDanhSachTaiKhoanAdmin() {
+        const dbTaiKhoan = layDanhSachTaiKhoanDb();
+        const tbody = document.getElementById('adminUserTableBody');
+        tbody.innerHTML = '';
+
+        for (let username in dbTaiKhoan) {
+            let uData = dbTaiKhoan[username];
+            let nQuyen = uData.quyen === 'ADMIN' ? 'Quản trị' : (uData.quyen === 'VIEWER' ? 'Lãnh đạo (Xem)' : 'Chuyên viên');
+            let buttonHanhDong = username === sessionStorage.getItem('loggedInUser') ? 
+                `<span style="font-style:italic; color:gray;">Đang hoạt động</span>` : 
+                `<button class="btn-reset-pw" onclick="adminResetMatKhau('${username}')">🔑 Đặt lại MK</button>`;
+            
+            let row = `<tr>
+                <td><strong>${username}</strong></td>
+                <td>${uData.tenHienThi}</td>
+                <td><span class="badge" style="background:#6c757d">${nQuyen}</span></td>
+                <td>${buttonHanhDong}</td>
+            </tr>`;
+            tbody.innerHTML += row;
+        }
+    }
+
+    document.getElementById('createUserForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const u = document.getElementById('newUsername').value.trim().toLowerCase();
+        const p = document.getElementById('newPassword').value;
+        const dName = document.getElementById('newDisplayName').value.trim();
+        const role = document.getElementById('newRole').value;
+
+        let dbTaiKhoan = layDanhSachTaiKhoanDb();
+        if (dbTaiKhoan[u]) {
+            alert(`⚠️ Tên đăng nhập "${u}" đã tồn tại!`);
+            return;
+        }
+
+        dbTaiKhoan[u] = { matKhau: p, tenHienThi: dName, quyen: role };
+        localStorage.setItem('heThongTaiKhoan', JSON.stringify(dbTaiKhoan));
+        alert(`🎉 Đã tạo thành công tài khoản cán bộ: ${dName}`);
+        document.getElementById('createUserForm').reset();
+        capNhatDropdownCánBộ();
+        taiDanhSachTaiKhoanAdmin();
+    });
+
+    function adminResetMatKhau(username) {
+        let dbTaiKhoan = layDanhSachTaiKhoanDb();
+        if (dbTaiKhoan[username]) {
+            if(confirm(`Anh có chắc chắn muốn đặt lại mật khẩu của tài khoản "${username}" về mặc định "123" không?`)) {
+                dbTaiKhoan[username].matKhau = "123";
+                localStorage.setItem('heThongTaiKhoan', JSON.stringify(dbTaiKhoan));
+                alert(`🔑 Đã khôi phục mật khẩu tài khoản "${username}" về mặc định: 123`);
+            }
+        }
+    }
+
+    function kiemTraCoQuanKhac(val) {
+        const wrapper = document.getElementById('coQuanKhacWrapper');
+        const inputKhac = document.getElementById('coQuanKhac');
+        if (val === 'Khác') {
+            wrapper.style.display = 'block';
+            inputKhac.setAttribute('required', 'true');
+        } else {
+            wrapper.style.display = 'none';
+            inputKhac.removeAttribute('required');
+            inputKhac.value = "";
+        }
+    }
+
+    function tuDongKiemTraTienDoTheoKetQua() {
+        const txtKetQua = document.getElementById('ketQua').value.trim();
+        const strThoiHan = document.getElementById('thoiHan').value;
+        const selTienDo = document.getElementById('tienDo');
+
+        if (!strThoiHan) return;
+
+        const thoiHanDate = new Date(strThoiHan);
+        thoiHanDate.setHours(0, 0, 0, 0);
+
+        if (!txtKetQua || txtKetQua === "Chưa có kết quả") {
+            const homNay = new Date();
+            homNay.setHours(0, 0, 0, 0);
+            if (homNay > thoiHanDate) {
+                selTienDo.value = "Chưa hoàn thành - Trễ hạn";
+            } else {
+                selTienDo.value = "Chưa hoàn thành - Trong hạn";
+            }
+            return;
+        }
+
+        const dateRegex = /(\d{1,2})\/(\d{1,2})\/(\d{4})/;
+        const match = txtKetQua.match(dateRegex);
+
+        if (match) {
+            const ngayBaoCao = parseInt(match[1], 10);
+            const thangBaoCao = parseInt(match[2], 10) - 1;
+            const namBaoCao = parseInt(match[3], 10);
+
+            const hoanThanhDate = new Date(namBaoCao, thangBaoCao, ngayBaoCao);
+            hoanThanhDate.setHours(0, 0, 0, 0);
+
+            if (hoanThanhDate <= thoiHanDate) {
+                selTienDo.value = "Hoàn thành - Trong hạn";
+            } else {
+                selTienDo.value = "Hoàn thành - Quá hạn";
+            }
+        } else {
+            selTienDo.value = "Hoàn thành - Trong hạn";
+        }
+    }
+
+    function formatISOToVN(strISO) {
+        if (!strISO) return "---";
+        const p = strISO.split('-');
+        if (p.length === 3) return `${p[2]}/${p[1]}/${p[0]}`;
+        return strISO;
+    }
+
+    function chonKyBaoCao(ky) {
+        kyHienTai = ky;
+        
+        const buttons = document.querySelectorAll('.btn-period');
+        buttons.forEach(btn => btn.classList.remove('active'));
+        
+        const btnAct = document.getElementById(`btn-${ky}`);
+        if(btnAct) btnAct.classList.add('active');
+
+        const homNay = new Date();
+        let tuNgay = "";
+        let denNgay = "";
+
+        if (ky === 'today') {
+            tuNgay = denNgay = homNay.toISOString().split('T')[0];
+        } else if (ky === 'week') {
+            const currentDay = homNay.getDay();
+            const distanceToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+            const monday = new Date(homNay);
+            monday.setDate(homNay.getDate() + distanceToMonday);
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+            
+            tuNgay = monday.toISOString().split('T')[0];
+            denNgay = sunday.toISOString().split('T')[0];
+        } else if (ky === 'month') {
+            const y = homNay.getFullYear();
+            const m = homNay.getMonth();
+            tuNgay = new Date(y, m, 1).toISOString().split('T')[0];
+            denNgay = new Date(y, m + 1, 0).toISOString().split('T')[0];
+        } else if (ky === 'quarter') {
+            const y = homNay.getFullYear();
+            const q = Math.floor(homNay.getMonth() / 3);
+            tuNgay = new Date(y, q * 3, 1).toISOString().split('T')[0];
+            denNgay = new Date(y, (q + 1) * 3, 0).toISOString().split('T')[0];
+        } else if (ky === 'year') {
+            const y = homNay.getFullYear();
+            tuNgay = `${y}-01-01`;
+            denNgay = `${y}-12-31`;
+        }
+
+        document.getElementById('filterTuNgay').value = tuNgay;
+        document.getElementById('filterDenNgay').value = denNgay;
+
+        chayBoLocVaThongKe();
+    }
+
+    function suKienThayDoiKhoangNgay() {
+        const buttons = document.querySelectorAll('.btn-period');
+        buttons.forEach(btn => btn.classList.remove('active'));
+        kyHienTai = 'custom';
+        chayBoLocVaThongKe();
+    }
+
+    function layDuLieuDaLoc() {
+        const fTu = document.getElementById('filterTuNgay').value;
+        const fDen = document.getElementById('filterDenNgay').value;
+        const fCoQuan = document.getElementById('filterCoQuan').value;
+        const fChuyenVien = document.getElementById('filterChuyenVien').value;
+        const fTienDo = document.getElementById('filterTienDo').value;
+
+        return danhSachNhiemVu.filter(task => {
+            if (userHienTai.quyen === 'USER' && task.chuyenVien !== userHienTai.tenHienThi) {
+                return false;
+            }
+
+            if (fChuyenVien !== 'All' && task.chuyenVien !== fChuyenVien) return false;
+            if (fCoQuan !== 'All' && task.coQuanGoc !== fCoQuan) return false;
+            if (fTienDo !== 'All' && task.tienDo !== fTienDo) return false;
+
+            if (fTu || fDen) {
+                if (!task.tGiaoGoc) return false;
+                if (fTu && task.tGiaoGoc < fTu) return false;
+                if (fDen && task.tGiaoGoc > fDen) return false;
+            }
+
+            return true;
+        });
+    }
+
+    function chayBoLocVaThongKe() {
+        // Luôn luôn thực hiện quét kiểm tra trạng thái thời gian thực trước khi tính toán số liệu và render giao diện
+        quetVaCapNhatTrangThaiThoiGianThuc();
+
+        const duLieuDaLoc = layDuLieuDaLoc();
+        
+        let tong = duLieuDaLoc.length;
+        let cxTH = duLieuDaLoc.filter(t => t.tienDo === "Chưa hoàn thành - Trong hạn").length;
+        let cxTHH = duLieuDaLoc.filter(t => t.tienDo === "Chưa hoàn thành - Trễ hạn").length;
+        let htTH = duLieuDaLoc.filter(t => t.tienDo === "Hoàn thành - Trong hạn").length;
+        let htQH = duLieuDaLoc.filter(t => t.tienDo === "Hoàn thành - Quá hạn").length;
+
+        document.getElementById('db-tong').innerText = tong;
+        document.getElementById('db-cx-th').innerText = cxTH;
+        document.getElementById('db-cx-thh').innerText = cxTHH;
+        document.getElementById('db-ht-th').innerText = htTH;
+        document.getElementById('db-ht-qh').innerText = htQH;
+
+        let tieuDeDashboard = "📊 Tình hình chung thực hiện nhiệm vụ";
+        if (kyHienTai === 'today') tieuDeDashboard += " (Hôm nay)";
+        else if (kyHienTai === 'week') tieuDeDashboard += " (Tuần này)";
+        else if (kyHienTai === 'month') tieuDeDashboard += " (Tháng này)";
+        else if (kyHienTai === 'quarter') tieuDeDashboard += " (Quý này)";
+        else if (kyHienTai === 'year') tieuDeDashboard += " (Năm này)";
+        else if (kyHienTai === 'custom') tieuDeDashboard += " (Khoảng ngày tùy chỉnh)";
+        document.getElementById('db-title-tongQuan').innerText = tieuDeDashboard;
+
+        hienThiBangDanhSach(duLieuDaLoc);
+        thongKeTheoDonViSựNghiệp(duLieuDaLoc);
+    }
+
+    function hienThiBangDanhSach(list) {
+        const tbody = document.getElementById('taskTableBody');
+        tbody.innerHTML = '';
+
+        if(userHienTai.quyen === 'VIEWER') {
+            document.getElementById('thThaoTac').style.display = 'none';
+        } else {
+            document.getElementById('thThaoTac').style.display = 'table-cell';
+        }
+
+        list.forEach((task, index) => {
+            let badgeClass = "bg-chua-xong-trong-han";
+            if (task.tienDo === "Chưa hoàn thành - Trễ hạn") badgeClass = "bg-chua-xong-tre-han";
+            else if (task.tienDo === "Hoàn thành - Trong hạn") badgeClass = "bg-hoan-thanh-trong-han";
+            else if (task.tienDo === "Hoàn thành - Quá hạn") badgeClass = "bg-hoan-thanh-qua-han";
+
+            // Tìm index gốc trong mảng danhSachNhiemVu
+            let indexGoc = danhSachNhiemVu.findIndex(t => t === task);
+
+            let tdThaoTac = userHienTai.quyen === 'VIEWER' ? '' : 
+                `<td class="no-export"><button class="btn-edit" onclick="vaoCheDoSua(${indexGoc})">✏️ Sửa</button></td>`;
+
+            let row = `<tr>
+                <td><strong>${index + 1}</strong></td>
+                <td>${task.noiDung}</td>
+                <td>${task.tGiaoHienThi || formatISOToVN(task.tGiaoGoc)}</td>
+                <td>${task.vanBan}</td>
+                <td>${task.thoiHanHienThi || formatISOToVN(task.thoiHanGoc)}</td>
+                <td>${task.coQuan}</td>
+                <td>${task.ketQua}</td>
+                <td><span class="badge ${badgeClass}">${task.tienDo}</span></td>
+                <td><span style="font-weight:500; color:#555;">${task.chuyenVien}</span></td>
+                <td>${task.ghiChu}</td>
+                ${tdThaoTac}
+            </tr>`;
+            tbody.innerHTML += row;
+        });
+    }
+
+    function thongKeTheoDonViSựNghiệp(list) {
+        const tbody = document.getElementById('dashboardDepartmentBody');
+        tbody.innerHTML = '';
+
+        let mapThongKe = {};
+        cacPhongBanCoDinh.forEach(pb => {
+            mapThongKe[pb] = { tong: 0, cxTH: 0, cxTHH: 0, htTH: 0, htQH: 0 };
+        });
+        mapThongKe["Cơ quan đơn vị khác"] = { tong: 0, cxTH: 0, cxTHH: 0, htTH: 0, htQH: 0 };
+
+        list.forEach(task => {
+            let tenDonViKey = cacPhongBanCoDinh.includes(task.coQuanGoc) ? task.coQuanGoc : "Cơ quan đơn vị khác";
+            
+            mapThongKe[tenDonViKey].tong++;
+            if (task.tienDo === "Chưa hoàn thành - Trong hạn") mapThongKe[tenDonViKey].cxTH++;
+            else if (task.tienDo === "Chưa hoàn thành - Trễ hạn") mapThongKe[tenDonViKey].cxTHH++;
+            else if (task.tienDo === "Hoàn thành - Trong hạn") mapThongKe[tenDonViKey].htTH++;
+            else if (task.tienDo === "Hoàn thành - Quá hạn") mapThongKe[tenDonViKey].htQH++;
+        });
+
+        for (let pb in mapThongKe) {
+            let data = mapThongKe[pb];
+            if (data.tong === 0) continue; 
+
+            let row = `<tr>
+                <td class="font-bold" style="color:#495057;">${pb}</td>
+                <td class="font-bold" style="text-align:center;">${data.tong}</td>
+                <td style="text-align:center; font-weight:bold; color:var(--info-color);">${data.cxTH}</td>
+                <td style="text-align:center; font-weight:bold; color:var(--danger-color);">${data.cxTHH}</td>
+                <td style="text-align:center; font-weight:bold; color:var(--success-color);">${data.htTH}</td>
+                <td style="text-align:center; font-weight:bold; color:#e0a800;">${data.htQH}</td>
+            </tr>`;
+            tbody.innerHTML += row;
+        }
+    }
+
+    document.getElementById('taskForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+
+        const noiDung = document.getElementById('noiDung').value.trim();
+        const thoiGianGiao = document.getElementById('thoiGianGiao').value;
+        const vanBan = document.getElementById('vanBan').value.trim() || "---";
+        const thoiHan = document.getElementById('thoiHan').value;
+        const coQuanGoc = document.getElementById('coQuan').value;
+        const coQuanKhacText = document.getElementById('coQuanKhac').value.trim();
+        const ketQua = document.getElementById('ketQua').value.trim() || "Chưa có kết quả";
+        const tienDo = document.getElementById('tienDo').value;
+        const chuyenVien = document.getElementById('chuyenVien').value;
+        const ghiChu = document.getElementById('ghiChu').value.trim() || "---";
+
+        let tenCoQuanHienThi = coQuanGoc;
+        if (coQuanGoc === 'Khác') {
+            tenCoQuanHienThi = coQuanKhacText || "Cơ quan đơn vị khác";
+        }
+
+        const taskData = {
+            noiDung: noiDung,
+            vanBan: vanBan,
+            tGiaoGoc: thoiGianGiao,
+            tGiaoHienThi: formatISOToVN(thoiGianGiao),
+            thoiHanGoc: thoiHan,
+            thoiHanHienThi: thoiHan ? formatISOToVN(thoiHan) : "---",
+            coQuan: tenCoQuanHienThi,
+            coQuanGoc: coQuanGoc,
+            coQuanKhacText: coQuanKhacText,
+            ketQua: ketQua,
+            tienDo: tienDo,
+            chuyenVien: chuyenVien,
+            ghiChu: ghiChu
+        };
+
+        if (dangSuaIndex !== null) {
+            danhSachNhiemVu[dangSuaIndex] = taskData;
+            alert("🎉 Đã cập nhật thông tin tiến độ nhiệm vụ thành công!");
+        } else {
+            danhSachNhiemVu.unshift(taskData);
+            alert("🎉 Đã thêm mới nhiệm vụ giao ban thành công!");
+        }
+
+        // Đồng bộ lên Google Sheets hoặc lưu trữ Local
+        if (GOOGLE_SCRIPT_URL) {
+            const actionType = dangSuaIndex !== null ? "update" : "create";
+            
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: actionType, index: dangSuaIndex, data: taskData })
+            }).then(() => {
+                console.log("Đã phát lệnh đồng bộ Web App API Google Sheets.");
+            });
+        }
+
+        localStorage.setItem('localTasksStore', JSON.stringify(danhSachNhiemVu));
+        thoatCheDoSua();
+        chayBoLocVaThongKe();
+    });
+
+    function vaoCheDoSua(index) {
+        dangSuaIndex = index;
+        const task = danhSachNhiemVu[index];
+
+        document.getElementById('formContainer').classList.add('edit-mode');
+        document.getElementById('formTitle').innerText = `✏️ Chế độ hiệu chỉnh nâng cao (Dòng số ${index + 1})`;
+        document.getElementById('btnSubmitText').innerText = "🔄 Xác nhận cập nhật";
+        document.getElementById('btnCancel').style.display = "block";
+
+        document.getElementById('noiDung').value = task.noiDung;
+        document.getElementById('thoiGianGiao').value = task.tGiaoGoc;
+        document.getElementById('vanBan').value = task.vanBan === "---" ? "" : task.vanBan;
+        document.getElementById('thoiHan').value = task.thoiHanGoc;
+        document.getElementById('coQuan').value = task.coQuanGoc;
+        
+        kiemTraCoQuanKhac(task.coQuanGoc);
+        if (task.coQuanGoc === 'Khác') {
+            document.getElementById('coQuanKhac').value = task.coQuanKhacText;
+        }
+
+        document.getElementById('ketQua').value = task.ketQua === "Chưa có kết quả" ? "" : task.ketQua;
+        document.getElementById('tienDo').value = task.tienDo;
+        document.getElementById('chuyenVien').value = task.chuyenVien;
+        document.getElementById('ghiChu').value = task.ghiChu === "---" ? "" : task.ghiChu;
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function thoatCheDoSua() {
+        dangSuaIndex = null; 
+        document.getElementById('taskForm').reset();
+        document.getElementById('coQuanKhacWrapper').style.display = 'none';
+        document.getElementById('formContainer').classList.remove('edit-mode');
+        document.getElementById('formTitle').innerText = "✏️ Cập nhật nhiệm vụ giao ban";
+        document.getElementById('btnSubmitText').innerText = "💾 Lưu nhiệm vụ";
+        document.getElementById('btnCancel').style.display = "none";
+        
+        if(userHienTai && userHienTai.quyen === 'USER') { 
+            document.getElementById('chuyenVien').value = userHienTai.tenHienThi; 
+        }
+    }
+
+    function xuatBaoCaoExcel() {
+        const table = document.getElementById("taskTable"); 
+        const clonedTable = table.cloneNode(true);
+        const ths = clonedTable.querySelectorAll("th.no-export"); 
+        ths.forEach(th => th.parentNode.removeChild(th));
+        const rows = clonedTable.querySelectorAll("tbody tr");
+        rows.forEach(row => { if(row.cells.length > 0 && userHienTai.quyen !== 'VIEWER') { row.deleteCell(-1); } });
+        
+        const wb = XLSX.utils.table_to_book(clonedTable, {sheet: "Nhiệm vụ"});
+        XLSX.writeFile(wb, "Danh_sach_theo_doi_nhiem_vu.xlsx");
+    }
+
+    function xuatBaoCaoWordHànhChính() {
+        const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, BorderStyle, HeadingLevel } = window.docx;
+        if (!window.docx) {
+            alert("Hệ thống không tìm thấy thư viện trích xuất Word. Anh kiểm tra lại kết nối mạng nhé.");
+            return;
+        }
+
+        const duLieuDaLoc = layDuLieuDaLoc();
+        const homNay = new Date();
+        const txtNgay = String(homNay.getDate()).padStart(2, '0');
+        const txtThang = String(homNay.getMonth() + 1).padStart(2, '0');
+        const txtNam = homNay.getFullYear();
+
+        const fontTieuDe = "Times New Roman";
+        const fontNen = "Times New Roman";
+
+        const fileDocx = new Document({
+            sections: [
+                {
+                    properties: {
+                        page: {
+                            margin: { top: 1134, bottom: 1134, left: 1701, right: 1134 } 
+                        }
+                    },
+                    children: [
+                        new Table({
+                            width: { size: 100, type: WidthType.PERCENTAGE },
+                            borders: {
+                                top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE },
+                                left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE },
+                                insideHorizontal: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE }
+                            },
+                            rows: [
+                                new TableRow({
+                                    children: [
+                                        new TableCell({
+                                            width: { size: 45, type: WidthType.PERCENTAGE },
+                                            children: [
+                                                new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "UBND XÃ KRÔNG BÔNG", font: fontTieuDe, size: 24, bold: true })] }),
+                                                new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "VĂN PHÒNG HĐND VÀ UBND", font: fontTieuDe, size: 24, bold: true })] }),
+                                                new Paragraph({ alignment: AlignmentType.CENTER, margin: { top: 60 }, children: [new TextRun({ text: "Số:          /BC-VP", font: fontTieuDe, size: 26 })] })
+                                            ]
+                                        }),
+                                        new TableCell({
+                                            width: { size: 55, type: WidthType.PERCENTAGE },
+                                            children: [
+                                                new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM", font: fontTieuDe, size: 24, bold: true })] }),
+                                                new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Độc lập – Tự do – Hạnh phúc", font: fontTieuDe, size: 26, bold: true })] }),
+                                                new Paragraph({ alignment: AlignmentType.CENTER, margin: { top: 120 }, children: [new TextRun({ text: `Krông Bông, ngày ${txtNgay} tháng ${txtThang} năm ${txtNam}`, font: fontTieuDe, size: 26, italic: true })] })
+                                            ]
+                                        })
+                                    ]
+                                })
+                            ]
+                        }),
+
+                        new Paragraph({ alignment: AlignmentType.CENTER, margin: { top: 400, bottom: 200 }, children: [new TextRun({ text: "BÁO CÁO", font: fontTieuDe, size: 30, bold: true })] }),
+                        new Paragraph({ alignment: AlignmentType.CENTER, margin: { bottom: 400 }, children: [new TextRun({ text: "Tình hình, kết quả thực hiện nhiệm vụ do UBND xã, Chủ tịch UBND xã giao", font: fontTieuDe, size: 28, bold: true })] }),
+
+                        new Paragraph({ alignment: AlignmentType.JUSTIFY, space: { before: 120, after: 120 }, children: [new TextRun({ text: "Kính gửi: ", font: fontNen, size: 28, bold: true }), new TextRun({ text: "Ủy ban nhân dân xã Krông Bông.", font: fontNen, size: 28 })] }),
+                        new Paragraph({ alignment: AlignmentType.JUSTIFY, space: { before: 120, after: 120 }, indent: { firstLine: 720 }, children: [new TextRun({ text: `Văn phòng HĐND và UBND xã báo cáo tình hình, kết quả thực hiện nhiệm vụ UBND xã, Chủ tịch UBND xã giao cho các cơ quan, bộ phận thực hiện tính đến ngày ${txtNgay}/${txtThang}/${txtNam} cụ thể như sau:`, font: fontNen, size: 28 })] }),
+
+                        new Table({
+                            width: { size: 100, type: WidthType.PERCENTAGE },
+                            rows: [
+                                new TableRow({
+                                    tableHeader: true,
+                                    children: [
+                                        new TableCell({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "STT", font: fontTieuDe, size: 22, bold: true })] })] }),
+                                        new TableCell({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Nội dung nhiệm vụ giao ban", font: fontTieuDe, size: 22, bold: true })] })] }),
+                                        new TableCell({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Văn bản giao", font: fontTieuDe, size: 22, bold: true })] })] }),
+                                        new TableCell({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Thời hạn", font: fontTieuDe, size: 22, bold: true })] })] }),
+                                        new TableCell({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Đơn vị thực hiện", font: fontTieuDe, size: 22, bold: true })] })] }),
+                                        new TableCell({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Kết quả tình hình thực hiện", font: fontTieuDe, size: 22, bold: true })] })] }),
+                                        new TableCell({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: "Trạng thái", font: fontTieuDe, size: 22, bold: true })] })] })
+                                    ]
+                                }),
+                                ...duLieuDaLoc.map((task, idx) => {
+                                    return new TableRow({
+                                        children: [
+                                            new TableCell({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: String(idx + 1), font: fontNen, size: 22 })] })] }),
+                                            new TableCell({ children: [new Paragraph({ alignment: AlignmentType.JUSTIFY, children: [new TextRun({ text: task.noiDung, font: fontNen, size: 22 })] })] }),
+                                            new TableCell({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: task.vanBan, font: fontNen, size: 22 })] })] }),
+                                            new TableCell({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: task.thoiHanHienThi, font: fontNen, size: 22 })] })] }),
+                                            new TableCell({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: task.coQuan, font: fontNen, size: 22 })] })] }),
+                                            new TableCell({ children: [new Paragraph({ alignment: AlignmentType.JUSTIFY, children: [new TextRun({ text: task.ketQua, font: fontNen, size: 22 })] })] }),
+                                            new TableCell({ children: [new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: task.tienDo, font: fontNen, size: 22, bold: true })] })] })
+                                        ]
+                                    });
+                                })
+                            ]
+                        })
+                    ]
+                }
+            ]
+        });
+
+        Packer.toBlob(fileDocx).then(blob => {
+            saveAs(blob, `Bao_cao_giao_ban_VP_${txtNgay}_${txtThang}_${txtNam}.docx`);
+            alert("🎉 Hệ thống đã trích xuất báo cáo Word thành công! Anh kiểm tra trong thư mục Download nhé.");
+        });
+    }
+
+    // Khởi chạy hệ thống kiểm tra phiên đăng nhập ban đầu
+    window.onload = function() {
+        kiemTraPhienDangNhap();
+    };
+</script>
+</body>
+</html>
