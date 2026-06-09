@@ -4,8 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Văn phòng HĐND và UBND xã Krông Bông - Hệ thống quản lý nhiệm vụ</title>
+    <!-- Thư viện Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Thư viện tạo file Word chuyên nghiệp -->
     <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.min.js"></script>
+    <!-- Thư viện hỗ trợ tải file về máy -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     
     <style>
@@ -436,8 +439,10 @@
 </div>
 
 <script>
+    // ANH THAY LINK /exec THỰC TẾ CỦA GOOGLE SHEETS VÀO ĐÂY ĐỂ ĐỒNG BỘ DỮ LIỆU NHIỆM VỤ GỐC
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyFZIau27CnAaCR8iqzNfJzTrmVYciK3oDO8S2okK6GLcpG0o7cF4vNEbRJ0WNQOg4Dlw/exec";
 
+    // Danh sách tài khoản nền móng cố định
     const TAI_KHOAN_MAC_DINH = {
         "quyetlc": { matKhau: "123", tenHienThi: "Lê Chí Quyết", quyen: "ADMIN" },
         "vanntt": { matKhau: "123", tenHienThi: "Nguyễn Thị Thúy Vân", quyen: "USER" },
@@ -446,6 +451,7 @@
         "lanhdao": { matKhau: "123", tenHienThi: "Thường trực UBND Xã", quyen: "VIEWER" }
     };
 
+    // Khởi tạo cơ sở dữ liệu tài khoản Local ban đầu nếu chưa có
     if (!localStorage.getItem('heThongTaiKhoan')) {
         localStorage.setItem('heThongTaiKhoan', JSON.stringify(TAI_KHOAN_MAC_DINH));
     }
@@ -455,14 +461,11 @@
     let kyHienTai = 'all';
     let userHienTai = null;
 
-    const cacPhongBanCoDinh = [
-        "Ban CHQS xã", "Công an xã", "Phòng Kinh tế", "Phòng Văn hóa - Xã hội",
-        "Văn phòng HĐND và UBND", "Trung tâm PVHCC xã", 
-        "Trung tâm Cung ứng dịch vụ sự nghiệp công xã", "Trạm Y tế xã"
-    ];
+    function layDanhSachTaiKhoanDb() { 
+        return JSON.parse(localStorage.getItem('heThongTaiKhoan')); 
+    }
 
-    function layDanhSachTaiKhoanDb() { return JSON.parse(localStorage.getItem('heThongTaiKhoan')); }
-
+    // XỬ LÝ ĐĂNG NHẬP
     document.getElementById('loginForm').addEventListener('submit', function(e) {
         e.preventDefault();
         const u = document.getElementById('username').value.trim().toLowerCase();
@@ -474,9 +477,12 @@
             err.style.display = 'none';
             sessionStorage.setItem('loggedInUser', u);
             kiemTraPhienDangNhap();
-        } else { err.style.display = 'block'; }
+        } else { 
+            err.style.display = 'block'; 
+        }
     });
 
+    // KIỂM TRA PHIÊN DĂNG NHẬP & PHÂN QUYỀN
     function kiemTraPhienDangNhap() {
         const key = sessionStorage.getItem('loggedInUser');
         const dbTaiKhoan = layDanhSachTaiKhoanDb();
@@ -486,16 +492,18 @@
             document.getElementById('loginWrapper').style.display = 'none';
             document.getElementById('mainContainer').style.display = 'block';
             
-            // FIX LỖI TẠI ĐÂY: Hiển thị chuẩn tên cán bộ đăng nhập từ dữ liệu bộ nhớ
+            // Đồng bộ hiển thị chuẩn họ tên cán bộ đang đăng nhập
             document.getElementById('currentUserName').innerText = userHienTai.tenHienThi;
             
             const bgBadge = userHienTai.quyen === 'ADMIN' ? '#212529' : (userHienTai.quyen === 'VIEWER' ? '#28a745' : '#0056b3');
             const txtBadge = userHienTai.quyen === 'ADMIN' ? 'Hệ thống & Tổng hợp' : (userHienTai.quyen === 'VIEWER' ? 'Lãnh đạo (Chỉ xem)' : 'Chuyên viên');
             const b = document.getElementById('currentUserRoleBadge');
-            b.innerText = txtBadge; b.style.backgroundColor = bgBadge;
+            b.innerText = txtBadge; 
+            b.style.backgroundColor = bgBadge;
 
             capNhatDropdownCánBộ();
             cauHinhGiaoDienTheoQuyen();
+            taiDanhSachTaiKhoanAdmin(); // Vẽ lại bảng danh sách tài khoản nếu là Admin
             taiDuLieuTuGoogleSheets();
         } else {
             document.getElementById('loginWrapper').style.display = 'flex';
@@ -503,6 +511,135 @@
         }
     }
 
+    function dangXuat() {
+        sessionStorage.removeItem('loggedInUser');
+        userHienTai = null;
+        document.getElementById('loginForm').reset();
+        kiemTraPhienDangNhap();
+    }
+
+    function capNhatDropdownCánBộ() {
+        const dbTaiKhoan = layDanhSachTaiKhoanDb();
+        const selChuyenVien = document.getElementById('chuyenVien');
+        const fChuyenVien = document.getElementById('filterChuyenVien');
+        
+        let htmlSelect = '<option value="">-- Chọn chuyên viên --</option>';
+        let htmlFilter = '<option value="All">-- Tất cả chuyên viên --</option>';
+        
+        for (let username in dbTaiKhoan) {
+            if (dbTaiKhoan[username].quyen !== 'VIEWER') {
+                let ten = dbTaiKhoan[username].tenHienThi;
+                htmlSelect += `<option value="${ten}">${ten}</option>`;
+                htmlFilter += `<option value="${ten}">${ten}</option>`;
+            }
+        }
+        selChuyenVien.innerHTML = htmlSelect;
+        fChuyenVien.innerHTML = htmlFilter;
+    }
+
+    function cauHinhGiaoDienTheoQuyen() {
+        const formSec = document.getElementById('formContainer');
+        const fChuyenVien = document.getElementById('filterChuyenVien');
+        const selChuyenVien = document.getElementById('chuyenVien');
+        const adminPanel = document.getElementById('adminControlPanel');
+
+        if (userHienTai.quyen === 'ADMIN') {
+            adminPanel.style.display = 'grid';
+            formSec.style.display = 'block';
+            selChuyenVien.disabled = false;
+            selChuyenVien.value = userHienTai.tenHienThi;
+            fChuyenVien.disabled = false;
+            fChuyenVien.value = 'All';
+            document.getElementById('lbl-tong-quat').innerText = "Tổng số nhiệm vụ toàn xã";
+        } else {
+            adminPanel.style.display = 'none';
+            if (userHienTai.quyen === 'VIEWER') {
+                formSec.style.display = 'none';
+                fChuyenVien.disabled = false;
+                fChuyenVien.value = 'All';
+                document.getElementById('lbl-tong-quat').innerText = "Tổng số nhiệm vụ toàn xã";
+            } else if (userHienTai.quyen === 'USER') {
+                formSec.style.display = 'block';
+                selChuyenVien.value = userHienTai.tenHienThi;
+                selChuyenVien.disabled = true;
+                fChuyenVien.value = userHienTai.tenHienThi;
+                fChuyenVien.disabled = true;
+                document.getElementById('lbl-tong-quat').innerText = "Nhiệm vụ cá nhân phụ trách";
+            }
+        }
+    }
+
+    // TẢI & IN DANH SÁCH TÀI KHOẢN TRONG PANEL QUẢN TRỊ ADMIN
+    function taiDanhSachTaiKhoanAdmin() {
+        if (userHienTai.quyen !== 'ADMIN') return;
+        const dbTaiKhoan = layDanhSachTaiKhoanDb();
+        const tbody = document.getElementById('adminUserTableBody');
+        let html = '';
+
+        for (let username in dbTaiKhoan) {
+            let user = dbTaiKhoan[username];
+            html += `
+                <tr>
+                    <td class="font-bold">${username}</td>
+                    <td>${user.tenHienThi}</td>
+                    <td><span class="badge" style="background-color: #6c757d;">${user.quyen}</span></td>
+                    <td>
+                        <button class="btn-reset-pw" onclick="xoaHoacResetMatKhau('${username}')">🔑 Đặt lại MK 123</button>
+                    </td>
+                </tr>
+            `;
+        }
+        tbody.innerHTML = html;
+    }
+
+    // SỬA LỖI & THÊM TÍNH NĂNG TẠO TÀI KHOẢN MỚI HOẠT ĐỘNG TRÊN LOCAL
+    document.getElementById('createUserForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (userHienTai.quyen !== 'ADMIN') return;
+
+        const uNew = document.getElementById('newUsername').value.trim().toLowerCase();
+        const pNew = document.getElementById('newPassword').value;
+        const dNew = document.getElementById('newDisplayName').value.trim();
+        const rNew = document.getElementById('newRole').value;
+
+        let dbTaiKhoan = layDanhSachTaiKhoanDb();
+
+        if (dbTaiKhoan[uNew]) {
+            alert("⚠️ Tên đăng nhập này đã tồn tại trên hệ thống!");
+            return;
+        }
+
+        // Cập nhật tài khoản mới vào cơ sở dữ liệu Local
+        dbTaiKhoan[uNew] = { matKhau: pNew, tenHienThi: dNew, quyen: rNew };
+        localStorage.setItem('heThongTaiKhoan', JSON.stringify(dbTaiKhoan));
+
+        alert(`🎉 Đã khởi tạo và phân quyền thành công tài khoản cho cán bộ: ${dNew}`);
+        document.getElementById('createUserForm').reset();
+        document.getElementById('newPassword').value = "123";
+        
+        // Làm mới giao diện để cập nhật dữ liệu vừa thêm
+        capNhatDropdownCánBộ();
+        cauHinhGiaoDienTheoQuyen();
+        taiDanhSachTaiKhoanAdmin();
+    });
+
+    function xoaHoacResetMatKhau(username) {
+        if (username === 'quyetlc') {
+            alert("🔒 Không được reset tài khoản admin hệ thống chính!");
+            return;
+        }
+        if (confirm(`Bạn có chắc chắn muốn đặt lại mật khẩu của tài khoản "${username}" về mặc định "123" không?`)) {
+            let dbTaiKhoan = layDanhSachTaiKhoanDb();
+            if (dbTaiKhoan[username]) {
+                dbTaiKhoan[username].matKhau = "123";
+                localStorage.setItem('heThongTaiKhoan', JSON.stringify(dbTaiKhoan));
+                alert("🔑 Đã đặt mật khẩu về mặc định: 123");
+                taiDanhSachTaiKhoanAdmin();
+            }
+        }
+    }
+
+    // ĐỒNG BỘ ĐỌC DỮ LIỆU TỪ GOOGLE SHEETS
     function taiDuLieuTuGoogleSheets() {
         if (!GOOGLE_SCRIPT_URL) { chonKyBaoCao('all'); return; }
         const loadingText = document.getElementById('loadingStatus');
@@ -548,66 +685,446 @@
         return "";
     }
 
-    function dangXuat() {
-        sessionStorage.removeItem('loggedInUser');
-        userHienTai = null;
-        document.getElementById('loginForm').reset();
-        kiemTraPhienDangNhap();
-    }
+    function chonKyBaoCao(ky) {
+        kyHienTai = ky;
+        const buttons = document.querySelectorAll('.btn-period');
+        buttons.forEach(btn => btn.classList.remove('active'));
+        const activeBtn = document.getElementById(`btn-${ky}`);
+        if(activeBtn) activeBtn.classList.add('active');
 
-    function capNhatDropdownCánBộ() {
-        const dbTaiKhoan = layDanhSachTaiKhoanDb();
-        const selChuyenVien = document.getElementById('chuyenVien');
-        const fChuyenVien = document.getElementById('filterChuyenVien');
-        
-        let htmlSelect = '<option value="">-- Chọn chuyên viên --</option>';
-        let htmlFilter = '<option value="All">-- Tất cả chuyên viên --</option>';
-        
-        for (let username in dbTaiKhoan) {
-            if (dbTaiKhoan[username].quyen !== 'VIEWER') {
-                let ten = dbTaiKhoan[username].tenHienThi;
-                htmlSelect += `<option value="${ten}">${ten}</option>`;
-                htmlFilter += `<option value="${ten}">${ten}</option>`;
-            }
+        const homNay = new Date();
+        let tuNgay = '';
+        let denNgay = '';
+
+        if (ky === 'today') {
+            tuNgay = denNgay = dinhDangNgayISO(homNay);
+        } else if (ky === 'week') {
+            const currentDay = homNay.getDay();
+            const distanceToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+            const thuHai = new Date(homNay);
+            thuHai.setDate(homNay.getDate() + distanceToMonday);
+            const chuNhat = new Date(thuHai);
+            chuNhat.setDate(thuHai.getDate() + 6);
+            tuNgay = dinhDangNgayISO(thuHai);
+            denNgay = dinhDangNgayISO(chuNhat);
+        } else if (ky === 'month') {
+            tuNgay = dinhDangNgayISO(new Date(homNay.getFullYear(), homNay.getMonth(), 1));
+            denNgay = dinhDangNgayISO(new Date(homNay.getFullYear(), homNay.getMonth() + 1, 0));
+        } else if (ky === 'quarter') {
+            const quyHienTai = Math.floor(homNay.getMonth() / 3);
+            tuNgay = dinhDangNgayISO(new Date(homNay.getFullYear(), quyHienTai * 3, 1));
+            denNgay = dinhDangNgayISO(new Date(homNay.getFullYear(), (quyHienTai + 1) * 3, 0));
+        } else if (ky === 'year') {
+            tuNgay = `${homNay.getFullYear()}-01-01`;
+            denNgay = `${homNay.getFullYear()}-12-31`;
         }
-        selChuyenVien.innerHTML = htmlSelect;
-        fChuyenVien.innerHTML = htmlFilter;
+
+        document.getElementById('filterTuNgay').value = tuNgay;
+        document.getElementById('filterDenNgay').value = denNgay;
+
+        chayBoLocVaThongKe();
     }
 
-    function cauHinhGiaoDienTheoQuyen() {
-        const formSec = document.getElementById('formContainer');
-        const fChuyenVien = document.getElementById('filterChuyenVien');
-        const selChuyenVien = document.getElementById('chuyenVien');
-        const adminPanel = document.getElementById('adminControlPanel');
+    function dinhDangNgayISO(dateObj) {
+        return dateObj.getFullYear() + '-' + String(dateObj.getMonth() + 1).padStart(2, '0') + '-' + String(dateObj.getDate()).padStart(2, '0');
+    }
 
-        if (userHienTai.quyen === 'ADMIN') {
-            adminPanel.style.display = 'grid';
-            formSec.style.display = 'block';
-            selChuyenVien.disabled = false;
-            selChuyenVien.value = userHienTai.tenHienThi;
-            fChuyenVien.disabled = false;
-            fChuyenVien.value = 'All';
-            document.getElementById('lbl-tong-quat').innerText = "Tổng số nhiệm vụ toàn xã";
-            taiDanhSachTaiKhoanAdmin();
+    function suKienThayDoiKhoangNgay() {
+        const buttons = document.querySelectorAll('.btn-period');
+        buttons.forEach(btn => btn.classList.remove('active'));
+        chayBoLocVaThongKe();
+    }
+
+    function chayBoLocVaThongKe() {
+        const filterTuNgay = document.getElementById('filterTuNgay').value;
+        const filterDenNgay = document.getElementById('filterDenNgay').value;
+        const filterCoQuan = document.getElementById('filterCoQuan').value;
+        const filterChuyenVien = document.getElementById('filterChuyenVien').value;
+        const filterTienDo = document.getElementById('filterTienDo').value;
+
+        let dataKetQua = [];
+
+        danhSachNhiemVu.forEach(nv => {
+            let hopLeNgay = true;
+            if (filterTuNgay && filterDenNgay && nv.tGiaoGoc) {
+                hopLeNgay = (nv.tGiaoGoc >= filterTuNgay && nv.tGiaoGoc <= filterDenNgay);
+            }
+            
+            let hopLeCoQuan = (filterCoQuan === 'All' || nv.coQuanGoc === filterCoQuan || (filterCoQuan === 'Khác' && nv.coQuanGoc === 'Khác'));
+            let hopLeChuyenVien = (filterChuyenVien === 'All' || nv.chuyenVien === filterChuyenVien);
+            let hopLeTienDo = (filterTienDo === 'All' || nv.tienDo === filterTienDo);
+
+            if (hopLeNgay && hopLeCoQuan && hopLeChuyenVien && hopLeTienDo) {
+                dataKetQua.push(nv);
+            }
+        });
+
+        hienThiBangDuLieu(dataKetQua);
+        tinhToanBieuDoMini(dataKetQua);
+    }
+
+    function hienThiBangDuLieu(mangNhiemVu) {
+        const tbody = document.getElementById('taskTableBody');
+        tbody.innerHTML = '';
+
+        if(mangNhiemVu.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; color:#999;">Không tìm thấy nhiệm vụ nào thỏa mãn bộ lọc hiện tại.</td></tr>`;
+            return;
+        }
+
+        mangNhiemVu.forEach((nv, idx) => {
+            let classBadge = 'bg-chua-xong-trong-han';
+            if (nv.tienDo === 'Chưa hoàn thành - Trễ hạn') classBadge = 'bg-chua-xong-tre-han';
+            else if (nv.tienDo === 'Hoàn thành - Trong hạn') classBadge = 'bg-hoan-thanh-trong-han';
+            else if (nv.tienDo === 'Hoàn thành - Quá hạn') classBadge = 'bg-hoan-thanh-qua-han';
+
+            let tenDonViHienThi = nv.coQuanGoc === 'Khác' ? (nv.coQuanKhacText || "Cơ quan khác") : nv.coQuanGoc;
+
+            let ctgSua = '';
+            if (userHienTai.quyen === 'ADMIN' || (userHienTai.quyen === 'USER' && nv.chuyenVien === userHienTai.tenHienThi)) {
+                ctgSua = `<button class="btn-edit" onclick="kichHoatCheDoSua(${idx})">✏️ Sửa</button>`;
+            } else {
+                ctgSua = `<span style="color:#aaa; font-size:11px;">Không có quyền</span>`;
+            }
+
+            let tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td style="text-align:center; font-weight:bold;">${idx + 1}</td>
+                <td style="min-width:250px; line-height:1.4;">${nv.noiDung}</td>
+                <td style="text-align:center;">${nv.tGiaoHienThi || "---"}</td>
+                <td>${nv.vanBan || "---"}</td>
+                <td style="text-align:center; font-weight:500;">${nv.thoiHanHienThi || "---"}</td>
+                <td class="font-bold" style="color:#495057;">${tenDonViHienThi}</td>
+                <td style="font-style:italic; color:#0056b3;">${nv.ketQua || "---"}</td>
+                <td style="text-align:center;"><span class="badge ${classBadge}">${nv.tienDo}</span></td>
+                <td style="font-size:13px; font-weight:500;">${nv.chuyenVien || "---"}</td>
+                <td style="color:#6c757d; font-size:13px;">${nv.ghiChu || "---"}</td>
+                <td style="text-align:center;" class="no-export">${ctgSua}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function tinhToanBieuDoMini(mangNhiemVu) {
+        let t = mangNhiemVu.length;
+        let cx_th = 0, cx_thh = 0, ht_th = 0, ht_qh = 0;
+
+        let thongKeDonVi = {};
+        cacPhongBanCoDinh.forEach(pb => {
+            thongKeDonVi[pb] = { tong: 0, cx_th: 0, cx_thh: 0, ht_th: 0, ht_qh: 0 };
+        });
+        thongKeDonVi['Khác'] = { tong: 0, cx_th: 0, cx_thh: 0, ht_th: 0, ht_qh: 0 };
+
+        mangNhiemVu.forEach(nv => {
+            let td = nv.tienDo;
+            if (td === 'Chưa hoàn thành - Trong hạn') cx_th++;
+            else if (td === 'Chưa hoàn thành - Trễ hạn') cx_thh++;
+            else if (td === 'Hoàn thành - Trong hạn') ht_th++;
+            else if (td === 'Hoàn thành - Quá hạn') ht_qh++;
+
+            let donViKey = cacPhongBanCoDinh.includes(nv.coQuanGoc) ? nv.coQuanGoc : 'Khác';
+            thongKeDonVi[donViKey].tong++;
+            if (td === 'Chưa hoàn thành - Trong hạn') thongKeDonVi[donViKey].cx_th++;
+            else if (td === 'Chưa hoàn thành - Trễ hạn') thongKeDonVi[donViKey].cx_thh++;
+            else if (td === 'Hoàn thành - Trong hạn') thongKeDonVi[donViKey].ht_th++;
+            else if (td === 'Hoàn thành - Quá hạn') thongKeDonVi[donViKey].ht_qh++;
+        });
+
+        document.getElementById('db-tong').innerText = t;
+        document.getElementById('db-cx-th').innerText = cx_th;
+        document.getElementById('db-cx-thh').innerText = cx_thh;
+        document.getElementById('db-ht-th').innerText = ht_th;
+        document.getElementById('db-ht-qh').innerText = ht_qh;
+
+        const tbodyDep = document.getElementById('dashboardDepartmentBody');
+        tbodyDep.innerHTML = '';
+        
+        for (let pb in thongKeDonVi) {
+            let row = thongKeDonVi[pb];
+            if(row.tong === 0) continue; 
+            let tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="font-bold">${pb === 'Khác' ? 'Cơ quan đơn vị khác' : pb}</td>
+                <td style="text-align:center; font-weight:bold; background-color:#e9ecef;">${row.tong}</td>
+                <td style="text-align:center; color:var(--info-color); font-weight:bold;">${row.cx_th}</td>
+                <td style="text-align:center; color:var(--danger-color); font-weight:bold;">${row.cx_thh}</td>
+                <td style="text-align:center; color:var(--success-color); font-weight:bold;">${row.ht_th}</td>
+                <td style="text-align:center; color:var(--warning-color); font-weight:bold;">${row.ht_qh}</td>
+            `;
+            tbodyDep.appendChild(tr);
+        }
+    }
+
+    function kiemTraCoQuanKhac(val) {
+        const wrapper = document.getElementById('coQuanKhacWrapper');
+        if(val === 'Khác') { wrapper.style.display = 'block'; }
+        else { wrapper.style.display = 'none'; document.getElementById('coQuanKhac').value = ''; }
+    }
+
+    function tuDongKiemTraTienDoTheoKetQua() {
+        const ketQuaText = document.getElementById('ketQua').value.trim();
+        const thoiHanVal = document.getElementById('thoiHan').value;
+        const selectTienDo = document.getElementById('tienDo');
+
+        if (!ketQuaText) {
+            if (thoiHanVal) {
+                const hạn = new Date(thoiHanVal);
+                const nay = new Date();
+                nay.setHours(0,0,0,0);
+                selectTienDo.value = (nay > hạn) ? "Chưa hoàn thành - Trễ hạn" : "Chưa hoàn thành - Trong hạn";
+            } else {
+                selectTienDo.value = "Chưa hoàn thành - Trong hạn";
+            }
+            return;
+        }
+
+        let ngayHoanThanhThựcTế = null;
+        const regexNgay = /ngày\s+([0-9]{1,2})\/([0-9]{1,2})\/([0-9]{4})/i;
+        const match = ketQuaText.match(regexNgay);
+        
+        if (match) {
+            const d = parseInt(match[1]);
+            const m = parseInt(match[2]) - 1;
+            const y = parseInt(match[3]);
+            ngayHoanThanhThựcTế = new Date(y, m, d);
         } else {
-            adminPanel.style.display = 'none';
-            if (userHienTai.quyen === 'VIEWER') {
-                formSec.style.display = 'none';
-                fChuyenVien.disabled = false;
-                fChuyenVien.value = 'All';
-                document.getElementById('lbl-tong-quat').innerText = "Tổng số nhiệm vụ toàn xã";
-            } else if (userHienTai.quyen === 'USER') {
-                formSec.style.display = 'block';
-                selChuyenVien.value = userHienTai.tenHienThi;
-                selChuyenVien.disabled = true;
-                fChuyenVien.value = userHienTai.tenHienThi;
-                fChuyenVien.disabled = true;
-                document.getElementById('lbl-tong-quat').innerText = "Nhiệm vụ cá nhân phụ trách";
-            }
+            ngayHoanThanhThựcTế = new Date();
+        }
+
+        if (thoiHanVal) {
+            const hạnChót = new Date(thoiHanVal);
+            selectTienDo.value = (ngayHoanThanhThựcTế > hạnChót) ? "Hoàn thành - Quá hạn" : "Hoàn thành - Trong hạn";
+        } else {
+            selectTienDo.value = "Hoàn thành - Trong hạn";
         }
     }
 
-    // Các hàm xử lý nghiệp vụ, chạy bộ lọc, tính toán biểu đồ thu gọn, xuất Word (.docx) và Excel (.xlsx) gốc của anh vẫn được chạy tự động đầy đủ ở bên dưới...
+    // THAO TÁC SỬA / CẬP NHẬT NHIỆM VỤ
+    function kichHoatCheDoSua(indexLoc) {
+        dangSuaIndex = indexLoc;
+        const nv = danhSachNhiemVu[indexLoc];
+        const formSec = document.getElementById('formContainer');
+        formSec.classList.add('edit-mode');
+        document.getElementById('formTitle').innerText = `✏️ Hiệu chỉnh & cập nhật nhiệm vụ (STT: ${indexLoc + 1})`;
+        document.getElementById('btnSubmitText').innerText = "🔄 Xác nhận cập nhật";
+        document.getElementById('btnCancel').style.display = 'inline-block';
+
+        document.getElementById('noiDung').value = nv.noiDung;
+        document.getElementById('thoiGianGiao').value = nv.tGiaoGoc;
+        document.getElementById('vanBan').value = nv.vanBan === '---' ? '' : nv.vanBan;
+        document.getElementById('thoiHan').value = nv.thoiHanGoc;
+        
+        if(cacPhongBanCoDinh.includes(nv.coQuanGoc)) {
+            document.getElementById('coQuan').value = nv.coQuanGoc;
+            document.getElementById('coQuanKhacWrapper').style.display = 'none';
+            document.getElementById('coQuanKhac').value = '';
+        } else {
+            document.getElementById('coQuan').value = 'Khác';
+            document.getElementById('coQuanKhacWrapper').style.display = 'block';
+            document.getElementById('coQuanKhac').value = nv.coQuanKhacText || nv.coQuanGoc;
+        }
+
+        document.getElementById('ketQua').value = nv.ketQua === 'Chưa có kết quả' ? '' : nv.ketQua;
+        document.getElementById('tienDo').value = nv.tienDo;
+        document.getElementById('chuyenVien').value = nv.chuyenVien;
+        document.getElementById('ghiChu').value = nv.ghiChu === '---' ? '' : nv.ghiChu;
+
+        formSec.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function thoatCheDoSua() {
+        dangSuaIndex = null;
+        const formSec = document.getElementById('formContainer');
+        formSec.classList.remove('edit-mode');
+        document.getElementById('formTitle').innerText = `✏️ Cập nhật nhiệm vụ giao ban`;
+        document.getElementById('btnSubmitText').innerText = "💾 Lưu nhiệm vụ";
+        document.getElementById('btnCancel').style.display = 'none';
+        document.getElementById('taskForm').reset();
+        if(userHienTai && userHienTai.quyen === 'USER') {
+            document.getElementById('chuyenVien').value = userHienTai.tenHienThi;
+        }
+    }
+
+    // SUBMIT FORM GIAO NHIỆM VỤ
+    document.getElementById('taskForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const nDung = document.getElementById('noiDung').value.trim();
+        const tGiao = document.getElementById('thoiGianGiao').value;
+        const vBan = document.getElementById('vanBan').value.trim() || "---";
+        const tHan = document.getElementById('thoiHan').value;
+        const cQuanSel = document.getElementById('coQuan').value;
+        const cQuanKhacTxt = document.getElementById('coQuanKhac').value.trim();
+        const kQua = document.getElementById('ketQua').value.trim() || "Chưa có kết quả";
+        const tDo = document.getElementById('tienDo').value;
+        const cVien = document.getElementById('chuyenVien').value;
+        const gChu = document.getElementById('ghiChu').value.trim() || "---";
+
+        let cqGoc = cQuanSel;
+        let cqKhacVal = "";
+        if (cQuanSel === 'Khác') {
+            cqGoc = 'Khác';
+            cqKhacVal = cQuanKhacTxt || "Cơ quan khác";
+        }
+
+        const taskData = {
+            noiDung: nDung,
+            vanBan: vBan,
+            tGiaoGoc: tGiao,
+            tGiaoHienThi: convertISODateToVietnamese(tGiao),
+            thoiHanGoc: tHan,
+            thoiHanHienThi: tHan ? convertISODateToVietnamese(tHan) : "---",
+            coQuan: cqGoc === 'Khác' ? cqKhacVal : cqGoc,
+            coQuanGoc: cqGoc,
+            coQuanKhacText: cqKhacVal,
+            ketQua: kQua,
+            tienDo: tDo,
+            chuyenVien: cVien,
+            ghiChu: gChu
+        };
+
+        if (dangSuaIndex !== null) {
+            danhSachNhiemVu[dangSuaIndex] = taskData;
+            alert("🎉 Đã cập nhật trạng thái nhiệm vụ thành công!");
+        } else {
+            danhSachNhiemVu.unshift(taskData);
+            alert("🎉 Đã thêm mới một nhiệm vụ ban ngành thành công!");
+        }
+
+        localStorage.setItem('localTasksStore', JSON.stringify(danhSachNhiemVu));
+        thoatCheDoSua();
+        chayBoLocVaThongKe();
+    });
+
+    function convertISODateToVietnamese(isoStr) {
+        if(!isoStr) return "---";
+        const p = isoStr.split('-');
+        if(p.length === 3) return `${p[2]}/${p[1]}/${p[0]}`;
+        return "---";
+    }
+
+    // TÍNH NĂNG XUẤT FILE BÁO CÁO EXCEL (.XLSX) PHỤC VỤ ĐƠN VỊ
+    function xuatBaoCaoExcel() {
+        const table = document.getElementById('taskTable');
+        let wb = XLSX.utils.book_new();
+        let ws_data = [];
+
+        ws_data.push(["ỦY BAN NHÂN DÂN XÃ KRÔNG BÔNG", "", "", "", "", "", "", "", "", ""]);
+        ws_data.push(["VĂN PHÒNG HĐND & UBND", "", "", "", "", "", "", "", "", ""]);
+        ws_data.push(["", "", "", "", "", "", "", "", "", ""]);
+        ws_data.push(["BẢNG TỔNG HỢP THEO DÕI TÌNH HÌNH THỰC HIỆN NHIỆM VỤ GIAO BAN", "", "", "", "", "", "", "", "", ""]);
+        ws_data.push([`Thời gian trích xuất: ${new Date().toLocaleDateString('vi-VN')}`, "", "", "", "", "", "", "", "", ""]);
+        ws_data.push(["", "", "", "", "", "", "", "", "", ""]);
+
+        ws_data.push([
+            "STT", "Nội dung nhiệm vụ được giao", "Thời gian giao", 
+            "Văn bản chỉ đạo/giao việc", "Thời hạn hoàn thành", "Đơn vị chủ trì thực hiện", 
+            "Văn bản báo cáo/Kết quả", "Trạng thái/Tiến độ", "Chuyên viên theo dõi", "Ghi chú bổ sung"
+        ]);
+
+        const rows = table.querySelectorAll('tbody tr');
+        rows.forEach(tr => {
+            let cells = tr.querySelectorAll('td');
+            if(cells.length > 1) {
+                ws_data.push([
+                    cells[0].innerText, cells[1].innerText, cells[2].innerText,
+                    cells[3].innerText, cells[4].innerText, cells[5].innerText,
+                    cells[6].innerText, cells[7].innerText, cells[8].innerText, cells[9].innerText
+                ]);
+            }
+        });
+
+        let ws = XLSX.utils.aoa_to_sheet(ws_data);
+        XLSX.utils.book_append_sheet(wb, ws, "Nhiệm vụ giao ban");
+        XLSX.writeFile(wb, `Bao_cao_nhiem_vu_xa_Krong_Bong_${new Date().getFullYear()}.xlsx`);
+    }
+
+    // TÍNH NĂNG XUẤT VĂN BẢN WORD (.DOCX) CHUẨN THỂ THỨC HÀNH CHÍNH XÃ
+    function xuatBaoCaoWordHànhChính() {
+        const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, BorderStyle, HeadingLevel } = docx;
+
+        const tableElement = document.getElementById('taskTable');
+        const rowsElement = tableElement.querySelectorAll('tbody tr');
+        
+        let dMucDocxRows = [];
+
+        dMucDocxRows.push(new TableRow({
+            children: [
+                new TableCell({ width: { size: 5, type: WidthType.PERCENTAGE }, children: [new Paragraph({ text: "STT", alignment: AlignmentType.CENTER, style: "HeaderStyle" })] }),
+                new TableCell({ width: { size: 25, type: WidthType.PERCENTAGE }, children: [new Paragraph({ text: "Nội dung nhiệm vụ", alignment: AlignmentType.CENTER, style: "HeaderStyle" })] }),
+                new TableCell({ width: { size: 10, type: WidthType.PERCENTAGE }, children: [new Paragraph({ text: "Thời gian giao", alignment: AlignmentType.CENTER, style: "HeaderStyle" })] }),
+                new TableCell({ width: { size: 12, type: WidthType.PERCENTAGE }, children: [new Paragraph({ text: "Văn bản giao", alignment: AlignmentType.CENTER, style: "HeaderStyle" })] }),
+                new TableCell({ width: { size: 10, type: WidthType.PERCENTAGE }, children: [new Paragraph({ text: "Thời hạn", alignment: AlignmentType.CENTER, style: "HeaderStyle" })] }),
+                new TableCell({ width: { size: 13, type: WidthType.PERCENTAGE }, children: [new Paragraph({ text: "Cơ quan thực hiện", alignment: AlignmentType.CENTER, style: "HeaderStyle" })] }),
+                new TableCell({ width: { size: 15, type: WidthType.PERCENTAGE }, children: [new Paragraph({ text: "Kết quả thực hiện", alignment: AlignmentType.CENTER, style: "HeaderStyle" })] }),
+                new TableCell({ width: { size: 10, type: WidthType.PERCENTAGE }, children: [new Paragraph({ text: "Tiến độ", alignment: AlignmentType.CENTER, style: "HeaderStyle" })] })
+            ]
+        }));
+
+        rowsElement.forEach(tr => {
+            let cells = tr.querySelectorAll('td');
+            if(cells.length > 1) {
+                dMucDocxRows.push(new TableRow({
+                    children: [
+                        new TableCell({ children: [new Paragraph({ text: cells[0].innerText, alignment: AlignmentType.CENTER })] }),
+                        new TableCell({ children: [new Paragraph({ text: cells[1].innerText })] }),
+                        new TableCell({ children: [new Paragraph({ text: cells[2].innerText, alignment: AlignmentType.CENTER })] }),
+                        new TableCell({ children: [new Paragraph({ text: cells[3].innerText })] }),
+                        new TableCell({ children: [new Paragraph({ text: cells[4].innerText, alignment: AlignmentType.CENTER })] }),
+                        new TableCell({ children: [new Paragraph({ text: cells[5].innerText, font: { bold: true } })] }),
+                        new TableCell({ children: [new Paragraph({ text: cells[6].innerText })] }),
+                        new TableCell({ children: [new Paragraph({ text: cells[7].innerText, alignment: AlignmentType.CENTER })] })
+                    ]
+                }));
+            }
+        });
+
+        const table = new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            rows: dMucDocxRows
+        });
+
+        const doc = new Document({
+            styles: {
+                paragraphStyles: [
+                    {
+                        id: "HeaderStyle",
+                        name: "Header Style",
+                        run: { bold: true, size: 24, font: "Times New Roman" }
+                    }
+                ]
+            },
+            sections: [{
+                properties: {},
+                children: [
+                    new Paragraph({
+                        alignment: AlignmentType.CENTER,
+                        children: [
+                            new TextRun({ text: "ỦY BAN NHÂN DÂN XÃ KRÔNG BÔNG\n", bold: true, size: 26, font: "Times New Roman" }),
+                            new TextRun({ text: "VĂN PHÒNG HĐND VÀ UBND\n", bold: true, decoration: { underline: {} }, size: 26, font: "Times New Roman" }),
+                            new TextRun({ text: "\nSố:      /BC-VP", size: 24, font: "Times New Roman" })
+                        ]
+                    }),
+                    new Paragraph({ text: "" }),
+                    new Paragraph({
+                        alignment: AlignmentType.CENTER,
+                        children: [
+                            new TextRun({ text: "BÁO CÁO\n", bold: true, size: 30, font: "Times New Roman" }),
+                            new TextRun({ text: "TÌNH HÌNH THỰC HIỆN NHIỆM VỤ, KẾT LUẬN GIAO BAN CỦA UBND XÃ\n", bold: true, size: 28, font: "Times New Roman" }),
+                            new TextRun({ text: "-------------------\n", size: 24, font: "Times New Roman" })
+                        ]
+                    }),
+                    new Paragraph({ text: "" }),
+                    table
+                ]
+            }]
+        });
+
+        Packer.toBlob(doc).then(blob => {
+            saveAs(blob, `Bao_cao_hanh_chinh_nhiem_vu_UBND_Xa_${new Date().getFullYear()}.docx`);
+        });
+    }
+
     window.onload = kiemTraPhienDangNhap;
 </script>
 </body>
