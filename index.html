@@ -439,8 +439,20 @@
 </div>
 
 <script>
-    // ANH THAY LINK /exec THỰC TẾ CỦA GOOGLE SHEETS VÀO ĐÂY ĐỂ ĐỒNG BỘ DỮ LIỆU NHIỆM VỤ GỐC
+    // LINK URL /exec THỰC TẾ CỦA GOOGLE SHEETS
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyFZIau27CnAaCR8iqzNfJzTrmVYciK3oDO8S2okK6GLcpG0o7cF4vNEbRJ0WNQOg4Dlw/exec";
+
+    // Khai báo mảng danh mục phòng ban cố định phục vụ thống kê Dashboard
+    const cacPhongBanCoDinh = [
+        "Ban CHQS xã",
+        "Công an xã",
+        "Phòng Kinh tế",
+        "Phòng Văn hóa - Xã hội",
+        "Văn phòng HĐND và UBND",
+        "Trung tâm PVHCC xã",
+        "Trung tâm Cung ứng dịch vụ sự nghiệp công xã",
+        "Trạm Y tế xã"
+    ];
 
     // Danh sách tài khoản nền móng cố định
     const TAI_KHOAN_MAC_DINH = {
@@ -592,7 +604,7 @@
         tbody.innerHTML = html;
     }
 
-    // SỬA LỖI & THÊM TÍNH NĂNG TẠO TÀI KHOẢN MỚI HOẠT ĐỘNG TRÊN LOCAL
+    // TẠO TÀI KHOẢN MỚI HOẠT ĐỘNG TRÊN LOCAL
     document.getElementById('createUserForm').addEventListener('submit', function(e) {
         e.preventDefault();
         if (userHienTai.quyen !== 'ADMIN') return;
@@ -1003,7 +1015,7 @@
         return "---";
     }
 
-    // TÍNH NĂNG XUẤT FILE BÁO CÁO EXCEL (.XLSX) PHỤC VỤ ĐƠN VỊ
+    // TÍNH NĂNG XUẤT FILE BÁO CÁO EXCEL (.XLSX)
     function xuatBaoCaoExcel() {
         const table = document.getElementById('taskTable');
         let wb = XLSX.utils.book_new();
