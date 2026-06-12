@@ -3,12 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Văn phòng HĐND và UBND xã Krông Bông - Hệ thống quản lý nhiệm vụ</title>
-    <!-- Thư viện Excel -->
+    <title>Hệ thống quản lý nhiệm vụ - Văn phòng HĐND và UBND xã Krông Bông</title>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- Thư viện tạo file Word chuyên nghiệp -->
     <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.min.js"></script>
-    <!-- Thư viện hỗ trợ tải file về máy -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     
     <style>
@@ -20,8 +17,8 @@
             --info-color: #17a2b8;
             --excel-color: #1f7244;
             --word-color: #007acc;
-            --bg-color: #f8f9fa;
-            --dark-color: #343a40;
+            --bg-color: #f4f6f9;
+            --dark-color: #2c3e50;
         }
 
         body {
@@ -50,8 +47,8 @@
             max-width: 450px;
             border-top: 5px solid var(--primary-color);
         }
-        .login-box h2 { text-align: center; color: var(--primary-color); margin-bottom: 5px; font-size: 20px; }
-        .login-box h4 { text-align: center; color: #555; margin-top: 5px; margin-bottom: 25px; font-weight: 500; font-size: 14px; text-transform: uppercase; border-bottom: 1px dashed #eee; padding-bottom: 10px;}
+        .login-box h2 { text-align: center; color: var(--primary-color); margin-bottom: 5px; font-size: 18px; }
+        .login-box h4 { text-align: center; color: #555; margin-top: 5px; margin-bottom: 25px; font-weight: 500; font-size: 13px; text-transform: uppercase; border-bottom: 1px dashed #eee; padding-bottom: 10px;}
         .login-group { display: flex; flex-direction: column; margin-bottom: 15px; }
         .login-group label { font-weight: bold; margin-bottom: 5px; font-size: 14px; }
         .login-group input { padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
@@ -75,18 +72,25 @@
         .btn-logout { background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; }
         .btn-logout:hover { background: #5a6268; }
 
-        h1 { text-align: center; color: var(--primary-color); margin-bottom: 5px; font-size: 24px; }
-        .sub-title { text-align: center; color: #555; font-size: 18px; font-weight: bold; margin-top: 5px; margin-bottom: 25px; text-transform: uppercase; }
-        h3 { margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 8px; color: #495057; }
+        h1 { text-align: center; color: var(--primary-color); margin-bottom: 5px; font-size: 24px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .sub-title { text-align: center; color: #495057; font-size: 18px; font-weight: bold; margin-top: 5px; margin-bottom: 25px; text-transform: uppercase; }
+        h3 { margin-top: 0; border-bottom: 2px solid #eee; padding-bottom: 8px; color: #2c3e50; font-size: 16px; display: flex; align-items: center; gap: 5px; }
+
+        /* ĐỔI MỚI GIAO DIỆN QUẢN TRỊ GỌN GÀNG */
+        .admin-section { display: none; background: #fff; padding: 15px 20px; border-radius: 8px; margin-bottom: 25px; border-left: 5px solid var(--dark-color); box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+        .admin-grid { display: grid; grid-template-columns: 1.2fr 2fr; gap: 20px; }
+        .admin-box { background: #f8f9fa; padding: 15px; border-radius: 6px; border: 1px solid #e2e8f0; }
+        .admin-form-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+        .admin-table-wrapper { overflow-y: auto; max-height: 190px; border: 1px solid #dee2e6; border-radius: 4px; }
 
         /* DASHBOARD STYLES */
-        .dashboard-section { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; margin-bottom: 30px; }
+        .dashboard-section { display: grid; grid-template-columns: 1.2fr 2fr; gap: 20px; margin-bottom: 25px; }
         .dashboard-box { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
         .cards-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 15px; }
         .card-total { grid-column: span 2; background: #e9ecef; border-left: 5px solid #6c757d; }
-        .card { padding: 15px; border-radius: 6px; color: white; text-align: center; }
-        .card-title { font-size: 13px; font-weight: 600; text-transform: uppercase; margin-bottom: 5px; opacity: 0.9;}
-        .card-num { font-size: 24px; font-weight: bold; }
+        .card { padding: 12px; border-radius: 6px; color: white; text-align: center; }
+        .card-title { font-size: 12px; font-weight: 600; text-transform: uppercase; margin-bottom: 5px; opacity: 0.9;}
+        .card-num { font-size: 22px; font-weight: bold; }
         .c-total { color: #212529; }
         .c-cx-th { background-color: var(--info-color); }
         .c-cx-thh { background-color: var(--danger-color); }
@@ -94,57 +98,49 @@
         .c-ht-qh { background-color: var(--warning-color); color: #212529; }
 
         .table-mini { width: 100%; border-collapse: collapse; font-size: 13px; }
-        .table-mini th { background-color: #6c757d; color: white; padding: 8px; }
-        .table-mini td { padding: 8px; border: 1px solid #dee2e6; }
+        .table-mini th { background-color: #6c757d; color: white; padding: 8px; position: sticky; top: 0; }
+        .table-mini td { padding: 7px 10px; border: 1px solid #dee2e6; }
         .table-mini tr:nth-child(even) { background-color: #f8f9fa; }
         .font-bold { font-weight: bold; }
 
         /* FORM STYLES */
-        .form-section { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 30px; border-top: 4px solid var(--primary-color); }
+        .form-section { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 25px; border-top: 4px solid var(--primary-color); }
         .form-section.edit-mode { border-top: 4px solid var(--warning-color); background: #fffdf5; }
-        .form-section.admin-mode { border-top: 4px solid var(--dark-color); background: #fdfefe; }
         .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; }
         .form-group { display: flex; flex-direction: column; }
         .form-group.full-width { grid-column: span 2; }
-        label { font-weight: 600; margin-bottom: 5px; font-size: 14px; }
-        input, select, textarea { padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; }
+        label { font-weight: 600; margin-bottom: 5px; font-size: 13px; color: #4a5568; }
+        input, select, textarea { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 14px; }
         textarea { resize: vertical; height: 38px; }
         #coQuanKhacWrapper { display: none; margin-top: 5px; }
         .auto-hint { font-size: 11px; color: #28a745; margin-top: 3px; font-style: italic; }
         .button-group { grid-column: 1 / -1; display: flex; gap: 10px; }
-        .btn-submit { flex: 1; background-color: var(--primary-color); color: white; padding: 12px; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        .btn-submit { flex: 1; background-color: var(--primary-color); color: white; padding: 12px; border: none; border-radius: 4px; font-size: 15px; font-weight: bold; cursor: pointer; }
         .btn-submit:hover { background-color: #004085; }
-        .btn-cancel { display: none; background-color: #6c757d; color: white; padding: 12px 20px; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; }
-
-        /* PHÂN HỆ QUẢN TRỊ TÀI KHOẢN */
-        .admin-section { display: none; grid-template-columns: 1fr 2fr; gap: 20px; margin-bottom: 30px; }
-        .btn-admin-submit { background-color: var(--dark-color); color: white; padding: 10px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; margin-top: 10px;}
-        .btn-admin-submit:hover { background-color: #1a1e21; }
-        .btn-reset-pw { background-color: var(--danger-color); color: white; border: none; padding: 3px 8px; border-radius: 4px; cursor: pointer; font-size: 12px;}
-        .btn-reset-pw:hover { background-color: #bd2130; }
+        .btn-cancel { display: none; background-color: #6c757d; color: white; padding: 12px 20px; border: none; border-radius: 4px; font-size: 15px; cursor: pointer; }
 
         /* FILTER & DATA TABLE STYLES */
-        .filter-section { background: #e9ecef; padding: 20px; border-radius: 8px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 15px; }
-        .filter-row { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; width: 100%; }
+        .filter-section { background: #e2e8f0; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 12px; box-shadow: inset 0 1px 3px rgba(0,0,0,0.05); }
+        .filter-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; width: 100%; }
         .filter-group { display: flex; align-items: center; gap: 8px; }
         .filter-group label { margin-bottom: 0; white-space: nowrap; }
         .period-buttons { display: flex; gap: 5px; flex-wrap: wrap; }
         
-        .btn-period { background-color: #fff; border: 1px solid #ced4da; padding: 6px 12px; font-size: 13px; border-radius: 4px; cursor: pointer; font-weight: 500; }
-        .btn-period:hover { background-color: #e2e6ea; }
+        .btn-period { background-color: #fff; border: 1px solid #cbd5e1; padding: 6px 12px; font-size: 13px; border-radius: 4px; cursor: pointer; font-weight: 500; }
+        .btn-period:hover { background-color: #f1f5f9; }
         .btn-period.active { background-color: var(--primary-color); color: white; border-color: var(--primary-color); }
 
-        .btn-excel { background-color: var(--excel-color); color: white; padding: 10px 18px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+        .btn-excel { background-color: var(--excel-color); color: white; padding: 9px 15px; border: none; border-radius: 4px; font-weight: bold; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 5px; }
         .btn-excel:hover { background-color: #175633; }
         
-        .btn-word { background-color: var(--word-color); color: white; padding: 10px 18px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; margin-left: auto;}
+        .btn-word { background-color: var(--word-color); color: white; padding: 9px 15px; border: none; border-radius: 4px; font-weight: bold; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 5px; margin-left: auto;}
         .btn-word:hover { background-color: #005f9e; }
 
         .table-section { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; font-size: 14px; text-align: left; }
-        th, td { padding: 12px; border: 1px solid #dee2e6; }
+        th, td { padding: 10px 12px; border: 1px solid #dee2e6; }
         th { background-color: var(--primary-color); color: white; font-weight: 600; white-space: nowrap; }
-        tr:nth-child(even) { background-color: #f2f2f2; }
+        tr:nth-child(even) { background-color: #f8fafc; }
 
         .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; color: white; display: inline-block; }
         .bg-chua-xong-trong-han { background-color: var(--info-color); }
@@ -189,53 +185,44 @@
         <button class="btn-logout" onclick="dangXuat()">🔄 Đăng xuất</button>
     </div>
 
-    <h1>VĂN PHÒNG HĐND VÀ UBND XÃ KRÔNG BÔNG</h1>
-    <div class="sub-title">📋 HỆ THỐNG QUẢN LÝ NHIỆM VỤ</div>
+    <h1>Hệ thống quản lý nhiệm vụ - Văn phòng HĐND và UBND xã Krông Bông</h1>
+    <div class="sub-title">📋 BẢNG THEO DÕI TIẾN ĐỘ TỔNG HỢP GIAO BAN</div>
 
     <div class="admin-section" id="adminControlPanel">
-        <div class="dashboard-box" style="border: 2px solid var(--dark-color);">
-            <h3>➕ Tạo tài khoản mới</h3>
-            <form id="createUserForm">
-                <div style="display: flex; flex-direction: column; gap: 10px;">
-                    <div class="form-group">
-                        <label for="newUsername">Tên đăng nhập *</label>
-                        <input type="text" id="newUsername" placeholder="Ví dụ: vanntt" required>
+        <h3>🛠️ KHÔNG GIAN QUẢN TRỊ HỆ THỐNG</h3>
+        <div class="admin-grid">
+            <div class="admin-box">
+                <form id="createUserForm">
+                    <div class="admin-form-group">
+                        <input type="text" id="newUsername" placeholder="Tên đăng nhập (ví dụ: vanntt)" required>
+                        <input type="password" id="newPassword" value="123" placeholder="Mật khẩu" required>
                     </div>
-                    <div class="form-group">
-                        <label for="newPassword">Mật khẩu ban đầu *</label>
-                        <input type="password" id="newPassword" value="123" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="newDisplayName">Họ và tên cán bộ *</label>
-                        <input type="text" id="newDisplayName" placeholder="Ví dụ: Nguyễn Thị Thúy Vân" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="newRole">Phân quyền nhóm chức năng *</label>
+                    <div class="admin-form-group">
+                        <input type="text" id="newDisplayName" placeholder="Họ tên cán bộ" required>
                         <select id="newRole" required>
-                            <option value="USER">Chuyên viên (Nhập liệu & theo dõi cá nhân)</option>
-                            <option value="VIEWER">Lãnh đạo xã (Chỉ theo dõi & Trích xuất)</option>
-                            <option value="ADMIN">Quản trị viên (Toàn quyền hệ thống)</option>
+                            <option value="USER">Chuyên viên (Theo dõi cá nhân)</option>
+                            <option value="VIEWER">Lãnh đạo xã (Chỉ xem)</option>
+                            <option value="ADMIN">Quản trị viên (Toàn quyền)</option>
                         </select>
                     </div>
-                    <button type="submit" class="btn-admin-submit">💼 Tạo & Cấp quyền</button>
-                </div>
-            </form>
-        </div>
+                    <button type="submit" style="width:100%;" class="btn-excel">💼 Cấp tài khoản mới</button>
+                </form>
+            </div>
 
-        <div class="dashboard-box" style="border: 2px solid var(--dark-color); overflow-y: auto; max-height: 350px;">
-            <h3>👥 Danh sách cán bộ & Reset mật khẩu</h3>
-            <table class="table-mini">
-                <thead>
-                    <tr>
-                        <th>Tài khoản</th>
-                        <th>Họ và tên</th>
-                        <th>Nhóm quyền</th>
-                        <th>Thao tác quản trị</th>
-                    </tr>
-                </thead>
-                <tbody id="adminUserTableBody">
-                </tbody>
-            </table>
+            <div class="admin-table-wrapper">
+                <table class="table-mini">
+                    <thead>
+                        <tr>
+                            <th>Tài khoản</th>
+                            <th>Họ và tên</th>
+                            <th>Quyền</th>
+                            <th style="text-align: center;">Hành động</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adminUserTableBody">
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 
@@ -286,7 +273,7 @@
     </div>
 
     <div class="form-section" id="formContainer">
-        <h3 id="formTitle">✏️ Cập nhật nhiệm vụ giao ban</h3>
+        <h3 id="formTitle">✏️ Ghi nhận / Cập nhật nhiệm vụ giao ban</h3>
         <form id="taskForm">
             <div class="form-grid">
                 <div class="form-group full-width">
@@ -364,7 +351,7 @@
     </div>
 
     <div class="filter-section">
-        <div class="filter-row" style="border-bottom: 1px dashed #ccc; padding-bottom: 12px;">
+        <div class="filter-row" style="border-bottom: 1px dashed #cbd5e1; padding-bottom: 12px;">
             <div class="filter-group">
                 <strong>📅 Kỳ báo cáo:</strong>
                 <label for="filterTuNgay">Từ ngày</label>
@@ -409,12 +396,12 @@
             </select>
 
             <button class="btn-excel" onclick="xuatBaoCaoExcel()">🟢 Xuất file Excel</button>
-            <button class="btn-word" onclick="xuatBaoCaoWordHànhChính()">🔵 Xuất Văn Bản Word chuẩn mẫu xã</button>
+            <button class="btn-word" onclick="xuatBaoCaoWordHànhChính()">🔵 Xuất Văn Bản Word hành chính</button>
         </div>
     </div>
 
     <div class="table-section">
-        <h3>📊 Danh sách nhiệm vụ tổng hợp</h3>
+        <h3>📊 Danh sách nhiệm vụ tổng hợp trực tuyến</h3>
         <div id="loadingStatus" class="loading-text" style="display: none;">⏳ Đang tải dữ liệu đồng bộ từ Google Sheets...</div>
         <table id="taskTable">
             <thead>
@@ -439,10 +426,8 @@
 </div>
 
 <script>
-    // LINK URL /exec THỰC TẾ CỦA GOOGLE SHEETS
     const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyFZIau27CnAaCR8iqzNfJzTrmVYciK3oDO8S2okK6GLcpG0o7cF4vNEbRJ0WNQOg4Dlw/exec";
 
-    // Khai báo mảng danh mục phòng ban cố định phục vụ thống kê Dashboard
     const cacPhongBanCoDinh = [
         "Ban CHQS xã",
         "Công an xã",
@@ -454,7 +439,6 @@
         "Trạm Y tế xã"
     ];
 
-    // Danh sách tài khoản nền móng cố định
     const TAI_KHOAN_MAC_DINH = {
         "quyetlc": { matKhau: "123", tenHienThi: "Lê Chí Quyết", quyen: "ADMIN" },
         "vanntt": { matKhau: "123", tenHienThi: "Nguyễn Thị Thúy Vân", quyen: "USER" },
@@ -463,7 +447,6 @@
         "lanhdao": { matKhau: "123", tenHienThi: "Thường trực UBND Xã", quyen: "VIEWER" }
     };
 
-    // Khởi tạo cơ sở dữ liệu tài khoản Local ban đầu nếu chưa có
     if (!localStorage.getItem('heThongTaiKhoan')) {
         localStorage.setItem('heThongTaiKhoan', JSON.stringify(TAI_KHOAN_MAC_DINH));
     }
@@ -477,7 +460,6 @@
         return JSON.parse(localStorage.getItem('heThongTaiKhoan')); 
     }
 
-    // XỬ LÝ ĐĂNG NHẬP
     document.getElementById('loginForm').addEventListener('submit', function(e) {
         e.preventDefault();
         const u = document.getElementById('username').value.trim().toLowerCase();
@@ -494,7 +476,6 @@
         }
     });
 
-    // KIỂM TRA PHIÊN DĂNG NHẬP & PHÂN QUYỀN
     function kiemTraPhienDangNhap() {
         const key = sessionStorage.getItem('loggedInUser');
         const dbTaiKhoan = layDanhSachTaiKhoanDb();
@@ -504,18 +485,17 @@
             document.getElementById('loginWrapper').style.display = 'none';
             document.getElementById('mainContainer').style.display = 'block';
             
-            // Đồng bộ hiển thị chuẩn họ tên cán bộ đang đăng nhập
             document.getElementById('currentUserName').innerText = userHienTai.tenHienThi;
             
             const bgBadge = userHienTai.quyen === 'ADMIN' ? '#212529' : (userHienTai.quyen === 'VIEWER' ? '#28a745' : '#0056b3');
-            const txtBadge = userHienTai.quyen === 'ADMIN' ? 'Hệ thống & Tổng hợp' : (userHienTai.quyen === 'VIEWER' ? 'Lãnh đạo (Chỉ xem)' : 'Chuyên viên');
+            const txtBadge = userHienTai.quyen === 'ADMIN' ? 'Quản trị viên' : (userHienTai.quyen === 'VIEWER' ? 'Lãnh đạo xã' : 'Chuyên viên');
             const b = document.getElementById('currentUserRoleBadge');
             b.innerText = txtBadge; 
             b.style.backgroundColor = bgBadge;
 
             capNhatDropdownCánBộ();
             cauHinhGiaoDienTheoQuyen();
-            taiDanhSachTaiKhoanAdmin(); // Vẽ lại bảng danh sách tài khoản nếu là Admin
+            taiDanhSachTaiKhoanAdmin(); 
             taiDuLieuTuGoogleSheets();
         } else {
             document.getElementById('loginWrapper').style.display = 'flex';
@@ -556,7 +536,7 @@
         const adminPanel = document.getElementById('adminControlPanel');
 
         if (userHienTai.quyen === 'ADMIN') {
-            adminPanel.style.display = 'grid';
+            adminPanel.style.display = 'block';
             formSec.style.display = 'block';
             selChuyenVien.disabled = false;
             selChuyenVien.value = userHienTai.tenHienThi;
@@ -581,7 +561,6 @@
         }
     }
 
-    // TẢI & IN DANH SÁCH TÀI KHOẢN TRONG PANEL QUẢN TRỊ ADMIN
     function taiDanhSachTaiKhoanAdmin() {
         if (userHienTai.quyen !== 'ADMIN') return;
         const dbTaiKhoan = layDanhSachTaiKhoanDb();
@@ -594,9 +573,9 @@
                 <tr>
                     <td class="font-bold">${username}</td>
                     <td>${user.tenHienThi}</td>
-                    <td><span class="badge" style="background-color: #6c757d;">${user.quyen}</span></td>
-                    <td>
-                        <button class="btn-reset-pw" onclick="xoaHoacResetMatKhau('${username}')">🔑 Đặt lại MK 123</button>
+                    <td><span class="badge" style="background-color: var(--dark-color); font-size:11px;">${user.quyen}</span></td>
+                    <td style="text-align:center;">
+                        <button class="btn-reset-pw" onclick="xoaHoacResetMatKhau('${username}')">🔑 Reset về 123</button>
                     </td>
                 </tr>
             `;
@@ -604,7 +583,6 @@
         tbody.innerHTML = html;
     }
 
-    // TẠO TÀI KHOẢN MỚI HOẠT ĐỘNG TRÊN LOCAL
     document.getElementById('createUserForm').addEventListener('submit', function(e) {
         e.preventDefault();
         if (userHienTai.quyen !== 'ADMIN') return;
@@ -617,19 +595,17 @@
         let dbTaiKhoan = layDanhSachTaiKhoanDb();
 
         if (dbTaiKhoan[uNew]) {
-            alert("⚠️ Tên đăng nhập này đã tồn tại trên hệ thống!");
+            alert("⚠️ Tên đăng nhập này đã tồn tại!");
             return;
         }
 
-        // Cập nhật tài khoản mới vào cơ sở dữ liệu Local
         dbTaiKhoan[uNew] = { matKhau: pNew, tenHienThi: dNew, quyen: rNew };
         localStorage.setItem('heThongTaiKhoan', JSON.stringify(dbTaiKhoan));
 
-        alert(`🎉 Đã khởi tạo và phân quyền thành công tài khoản cho cán bộ: ${dNew}`);
+        alert(`🎉 Khởi tạo tài khoản thành công cho cán bộ: ${dNew}`);
         document.getElementById('createUserForm').reset();
         document.getElementById('newPassword').value = "123";
         
-        // Làm mới giao diện để cập nhật dữ liệu vừa thêm
         capNhatDropdownCánBộ();
         cauHinhGiaoDienTheoQuyen();
         taiDanhSachTaiKhoanAdmin();
@@ -637,21 +613,20 @@
 
     function xoaHoacResetMatKhau(username) {
         if (username === 'quyetlc') {
-            alert("🔒 Không được reset tài khoản admin hệ thống chính!");
+            alert("🔒 Không cho phép Đặt lại tài khoản admin mặc định!");
             return;
         }
-        if (confirm(`Bạn có chắc chắn muốn đặt lại mật khẩu của tài khoản "${username}" về mặc định "123" không?`)) {
+        if (confirm(`Đặt lại mật khẩu tài khoản "${username}" về mặc định "123"?`)) {
             let dbTaiKhoan = layDanhSachTaiKhoanDb();
             if (dbTaiKhoan[username]) {
                 dbTaiKhoan[username].matKhau = "123";
                 localStorage.setItem('heThongTaiKhoan', JSON.stringify(dbTaiKhoan));
-                alert("🔑 Đã đặt mật khẩu về mặc định: 123");
+                alert("🔑 Đã đặt mật khẩu về mặc định thành công!");
                 taiDanhSachTaiKhoanAdmin();
             }
         }
     }
 
-    // ĐỒNG BỘ ĐỌC DỮ LIỆU TỪ GOOGLE SHEETS
     function taiDuLieuTuGoogleSheets() {
         if (!GOOGLE_SCRIPT_URL) { chonKyBaoCao('all'); return; }
         const loadingText = document.getElementById('loadingStatus');
@@ -673,7 +648,7 @@
                             coQuanGoc: item.coQuanGoc || item.coQuan || "Văn phòng HĐND và UBND",
                             coQuanKhacText: item.coQuanKhacText || "",
                             ketQua: item.ketQua || "Chưa có kết quả",
-                            tienDo: item.trangThai || "Chưa hoàn thành - Trong hạn",
+                            tienDo: item.trangThai || "Chưa hoàn thành - Trong hạn", // Đồng bộ trường nhận diện tiến độ
                             chuyenVien: item.nguoiNhap || "",
                             ghiChu: item.ghiChu || "---"
                         };
@@ -817,6 +792,7 @@
         });
     }
 
+    // ĐÃ SỬA LỖI ĐỒNG BỘ: KẾT NỐI CHUẨN BIẾN nv.tienDo VÀO TRÌNH THỐNG KÊ DASHBOARD
     function tinhToanBieuDoMini(mangNhiemVu) {
         let t = mangNhiemVu.length;
         let cx_th = 0, cx_thh = 0, ht_th = 0, ht_qh = 0;
@@ -828,7 +804,7 @@
         thongKeDonVi['Khác'] = { tong: 0, cx_th: 0, cx_thh: 0, ht_th: 0, ht_qh: 0 };
 
         mangNhiemVu.forEach(nv => {
-            let td = nv.tienDo;
+            let td = nv.tienDo; // Sửa lỗi lấy từ nv.trangThai cũ bị undefined
             if (td === 'Chưa hoàn thành - Trong hạn') cx_th++;
             else if (td === 'Chưa hoàn thành - Trễ hạn') cx_thh++;
             else if (td === 'Hoàn thành - Trong hạn') ht_th++;
@@ -911,7 +887,6 @@
         }
     }
 
-    // THAO TÁC SỬA / CẬP NHẬT NHIỆM VỤ
     function kichHoatCheDoSua(indexLoc) {
         dangSuaIndex = indexLoc;
         const nv = danhSachNhiemVu[indexLoc];
@@ -948,7 +923,7 @@
         dangSuaIndex = null;
         const formSec = document.getElementById('formContainer');
         formSec.classList.remove('edit-mode');
-        document.getElementById('formTitle').innerText = `✏️ Cập nhật nhiệm vụ giao ban`;
+        document.getElementById('formTitle').innerText = `✏️ Ghi nhận / Cập nhật nhiệm vụ giao ban`;
         document.getElementById('btnSubmitText').innerText = "💾 Lưu nhiệm vụ";
         document.getElementById('btnCancel').style.display = 'none';
         document.getElementById('taskForm').reset();
@@ -957,7 +932,6 @@
         }
     }
 
-    // SUBMIT FORM GIAO NHIỆM VỤ
     document.getElementById('taskForm').addEventListener('submit', function(e) {
         e.preventDefault();
         
@@ -979,33 +953,50 @@
             cqKhacVal = cQuanKhacTxt || "Cơ quan khác";
         }
 
-        const taskData = {
+        const payload = {
+            action: dangSuaIndex !== null ? "update" : "insert",
+            index: dangSuaIndex, 
             noiDung: nDung,
-            vanBan: vBan,
-            tGiaoGoc: tGiao,
-            tGiaoHienThi: convertISODateToVietnamese(tGiao),
-            thoiHanGoc: tHan,
-            thoiHanHienThi: tHan ? convertISODateToVietnamese(tHan) : "---",
+            thoiGianGiao: convertISODateToVietnamese(tGiao),
+            tenNhiemVu: vBan,
+            hanChot: tHan ? convertISODateToVietnamese(tHan) : "---",
             coQuan: cqGoc === 'Khác' ? cqKhacVal : cqGoc,
             coQuanGoc: cqGoc,
             coQuanKhacText: cqKhacVal,
             ketQua: kQua,
-            tienDo: tDo,
-            chuyenVien: cVien,
+            trangThai: tDo,
+            nguoiNhap: cVien,
             ghiChu: gChu
         };
 
-        if (dangSuaIndex !== null) {
-            danhSachNhiemVu[dangSuaIndex] = taskData;
-            alert("🎉 Đã cập nhật trạng thái nhiệm vụ thành công!");
-        } else {
-            danhSachNhiemVu.unshift(taskData);
-            alert("🎉 Đã thêm mới một nhiệm vụ ban ngành thành công!");
+        const loadingText = document.getElementById('loadingStatus');
+        loadingText.style.display = 'block';
+
+        if (!GOOGLE_SCRIPT_URL) {
+            alert("⚠️ Chưa cấu hình link GOOGLE_SCRIPT_URL!");
+            loadingText.style.display = 'none';
+            return;
         }
 
-        localStorage.setItem('localTasksStore', JSON.stringify(danhSachNhiemVu));
-        thoatCheDoSua();
-        chayBoLocVaThongKe();
+        const searchParams = new URLSearchParams();
+        searchParams.append("jsonPayload", JSON.stringify(payload));
+
+        fetch(GOOGLE_SCRIPT_URL, {
+            method: "POST",
+            mode: "no-cors", 
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: searchParams.toString()
+        })
+        .then(() => {
+            alert(dangSuaIndex !== null ? "🎉 Đã cập nhật dữ liệu lên Google Sheets thành công!" : "🎉 Đã thêm mới nhiệm vụ thành công!");
+            thoatCheDoSua();
+            taiDuLieuTuGoogleSheets();
+        })
+        .catch(err => {
+            console.error("Lỗi đồng bộ trực tuyến:", err);
+            alert("⚠️ Không thể kết nối với Apps Script!");
+            loadingText.style.display = 'none';
+        });
     });
 
     function convertISODateToVietnamese(isoStr) {
@@ -1015,7 +1006,6 @@
         return "---";
     }
 
-    // TÍNH NĂNG XUẤT FILE BÁO CÁO EXCEL (.XLSX)
     function xuatBaoCaoExcel() {
         const table = document.getElementById('taskTable');
         let wb = XLSX.utils.book_new();
@@ -1051,9 +1041,8 @@
         XLSX.writeFile(wb, `Bao_cao_nhiem_vu_xa_Krong_Bong_${new Date().getFullYear()}.xlsx`);
     }
 
-    // TÍNH NĂNG XUẤT VĂN BẢN WORD (.DOCX) CHUẨN THỂ THỨC HÀNH CHÍNH XÃ
     function xuatBaoCaoWordHànhChính() {
-        const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, BorderStyle, HeadingLevel } = docx;
+        const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType } = docx;
 
         const tableElement = document.getElementById('taskTable');
         const rowsElement = tableElement.querySelectorAll('tbody tr');
